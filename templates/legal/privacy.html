@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Privacy Policy") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<article class="container legal">
+  <p class="kicker">{{ _("Legal") }}</p>
+  <h1>{{ _("Privacy Policy") }}</h1>
+  <p class="muted">{{ _("Last updated: %(date)s", date="14/10/2026") }}</p>
+
+  <h2>{{ _("1. Who is responsible for your data") }}</h2>
+  <p>
+    {% if LEGAL_CONTROLLER %}{{ _("This website is run by %(name)s, the data controller under the GDPR.", name=LEGAL_CONTROLLER) }}{% else %}{{ _("This website is run by the Mythras AntiCheat team, the data controller under the GDPR.") }}{% endif %}
+    {% if LEGAL_EMAIL %}{{ _("Contact:") }} <a href="mailto:{{ LEGAL_EMAIL }}">{{ LEGAL_EMAIL }}</a>{% elif SUPPORT_DISCORD %}{{ _("Contact:") }} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Discord server") }}</a>{% endif %}
+  </p>
+
+  <h2>{{ _("2. Which data we process") }}</h2>
+  <ul>
+    <li><b>{{ _("Discord account") }}:</b> {{ _("when you sign in we receive your Discord user ID, display name and avatar. We do not ask Discord for your e-mail address and we never see your Discord password.") }}</li>
+    <li><b>{{ _("Licenses") }}:</b> {{ _("the keys linked to your account, their plan, status and expiry, and the Minecraft servers that use them (server ID, plugin version, last check-in).") }}</li>
+    <li><b>{{ _("Technical data") }}:</b> {{ _("your IP address and browser details are processed by our server and by Cloudflare to deliver the site and protect it from attacks.") }}</li>
+    <li><b>{{ _("Administrators only") }}:</b> {{ _("two-factor authentication data (an encrypted secret and hashed recovery codes) and a log of failed login attempts.") }}</li>
+  </ul>
+
+  <h2>{{ _("3. Why we process it") }}</h2>
+  <ul>
+    <li>{{ _("To create your account and manage your licenses: necessary to provide the service you asked for (art. 6(1)(b) GDPR).") }}</li>
+    <li>{{ _("To keep the website, the accounts and the license system secure and to prevent abuse: our legitimate interest (art. 6(1)(f) GDPR).") }}</li>
+  </ul>
+  <p>{{ _("We do not sell your data, we do not use it for advertising and we do not build profiles.") }}</p>
+
+  <h2>{{ _("4. Who receives it") }}</h2>
+  <ul>
+    <li><b>Discord</b>: {{ _("sign-in and avatar images.") }}</li>
+    <li><b>Cloudflare</b>: {{ _("network delivery and protection against attacks.") }}</li>
+    <li>{{ _("The provider that hosts our server.") }}</li>
+  </ul>
+  <p>{{ _("Discord and Cloudflare may process data outside the EU. These transfers are covered by the EU-US Data Privacy Framework or by the European Commission's standard contractual clauses.") }}</p>
+
+  <h2>{{ _("5. How long we keep it") }}</h2>
+  <ul>
+    <li>{{ _("Account data: until you ask us to delete your account.") }}</li>
+    <li>{{ _("License data: as long as the license exists, and longer only where the law requires it (for example, invoices).") }}</li>
+    <li>{{ _("Server logs: up to 30 days.") }}</li>
+  </ul>
+
+  <h2>{{ _("6. Your rights") }}</h2>
+  <p>{{ _("You can ask to access, correct or delete your data, to restrict or object to its processing, and to receive it in a portable format. To do so, contact us using the details above.") }}</p>
+  <p>{{ _("You can also lodge a complaint with your data protection authority. In Italy this is the Garante per la protezione dei dati personali (www.garanteprivacy.it).") }}</p>
+
+  <h2>{{ _("7. Cookies") }}</h2>
+  <p>{{ _("We only use essential cookies.") }} <a href="{{ url_for('cookie_policy') }}">{{ _("Cookie Policy") }}</a></p>
+</article>
+{% endblock %}

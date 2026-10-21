@@ -1,0 +1,29 @@
+{% from "_icons.html" import icon %}
+{# One <li> per panel event. Used by the panel page, the player page and the live feed (JSON). #}
+{% set player_ep = 'admin_panel_player' if admin else 'panel_player' %}
+{% for e in events %}
+<li class="feed-row type-{{ e.type }}" data-time="{{ e.time }}">
+  <span class="feed-icon" aria-hidden="true">{{ icon('crosshair' if e.type == 'alert' else ('x' if e.type == 'punish' else 'film')) }}</span>
+  <span class="feed-type">{{ _("Alert") if e.type == 'alert' else (_("Punishment") if e.type == 'punish' else _("Replay")) }}</span>
+  <span class="feed-player">
+    {% if e.uuid %}<img class="head" src="{{ url_for('player_head', uuid=e.uuid) }}" alt="" width="24" height="24" loading="lazy">{% else %}<span class="head head-empty"></span>{% endif %}
+    {% if e.player %}<a href="{{ url_for(player_ep, name=e.player) }}">{{ e.player }}</a>{% else %}<span class="muted">—</span>{% endif %}
+  </span>
+  <span class="feed-check mono">{{ e.check or '' }}</span>
+  <span class="feed-vl mono">{% if e.type == 'alert' %}VL {{ e.vl }}{% elif e.type == 'replay' %}{{ _("%(n)s s", n=e.vl|int) }}{% endif %}</span>
+  <span class="feed-info">
+    {% if e.type == 'replay' and (e.info or '').startswith('#') and e.info[1:].isdigit() %}
+      <span class="doc-code feed-cmd"><code>/ac replay play {{ e.info[1:] }}</code><button class="doc-copy" type="button" data-copy-code aria-label="{{ _('Copy') }}">{{ icon('copy') }}</button></span>
+    {% elif e.type == 'punish' and e.info == 'ban wave' %}
+      <span class="chip-demo">{{ _("Ban wave") }}</span>
+    {% else %}
+      <span class="mono small muted">{{ e.info or '' }}</span>
+    {% endif %}
+  </span>
+  <span class="feed-server small muted">
+    {{ server_names.get(e.server) or (e.server or '')[:8] }}
+    {% if admin %}<br><a class="mono" href="{{ url_for('admin_key', key=e.key) }}">{{ e.key[:9] }}…</a>{% set o = owners.get(e.key) %}{% if o %} · {{ names.get(o) or o }}{% endif %}{% endif %}
+  </span>
+  <time class="feed-time small muted js-time" data-ms="{{ e.time }}" data-mode="ago" datetime="{{ e.time|ms_iso }}">{{ e.time|ms_date }}</time>
+</li>
+{% endfor %}

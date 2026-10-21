@@ -1,0 +1,6 @@
+[Unit]
+Description=Mythras health check (Discord alert when the site or the license server is down)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/mythras-site/deploy/healthcheck.sh

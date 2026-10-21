@@ -1,0 +1,39 @@
+# /etc/systemd/system/mythras-site.service
+[Unit]
+Description=Mythras AntiCheat website (gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=mythras
+Group=mythras
+WorkingDirectory=/opt/mythras-site
+EnvironmentFile=/etc/mythras-site.env
+ExecStart=/opt/mythras-site/.venv/bin/gunicorn -c deploy/gunicorn.conf.py app:app
+Restart=on-failure
+RestartSec=3
+
+# Hardening: the app can only write to its data folder
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mythras-site/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

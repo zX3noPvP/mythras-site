@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block content %}
+
+{# ================= HERO ================= #}
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="kicker"><span class="kicker-dot"></span>{{ _("Anticheat for Minecraft servers") }}</p>
+      <h1>{{ _("Stop the cheaters.") }}<br><span class="red">{{ _("Keep the fair players.") }}</span></h1>
+      <p class="lead">{{ _("Mythras catches movement and combat cheats, saves a replay of every flag, and uses AI Learning to throw out the false positives before your staff ever sees them.") }}</p>
+      <div class="hero-actions">
+        {% if current_user %}
+          <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}">{{ _("Open dashboard") }} {{ icon('arrow') }}</a>
+        {% else %}
+          <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}">{{ icon('discord') }}{{ _("Sign up with Discord") }}</a>
+        {% endif %}
+        <a class="btn btn-outline btn-lg" href="#pricing">{{ _("View pricing") }}</a>
+      </div>
+      <ul class="hero-proof">
+        <li>{{ icon('film') }}{{ _("Replay on every flag") }}</li>
+        <li>{{ icon('cpu') }}{{ _("AI Learning") }}</li>
+        <li>{{ icon('key') }}{{ _("Free tier, no key needed") }}</li>
+      </ul>
+    </div>
+
+    <div class="console reveal" aria-label="{{ _('Simulated detection feed') }}">
+      <div class="console-bar">
+        <span class="console-title">{{ icon('terminal') }}mythras · {{ _("detection feed") }}</span>
+        <span class="chip-demo">{{ _("Demo") }}</span>
+      </div>
+      <ol class="console-log" id="console-log"></ol>
+      <div class="console-foot">
+        <span><b id="stat-checks">0</b> {{ _("checks") }}</span>
+        <span><b id="stat-vetoed">0</b> {{ _("vetoed by AI") }}</span>
+        <span><b class="red" id="stat-confirmed">0</b> {{ _("confirmed") }}</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ================= FOLIA ================= #}
+<section class="folia-band" aria-labelledby="folia-title">
+  <div class="container folia-inner">
+    <span class="folia-mark">{{ icon('check') }}</span>
+    <div class="folia-copy">
+      <h2 id="folia-title">{{ _("Available on Folia too") }}</h2>
+      <p>{{ _("Paper, Spigot and Folia, Minecraft 1.21 to 26.x. Folia runs with the Enterprise plan.") }}</p>
+    </div>
+    <a class="btn btn-green btn-lg" href="{{ url_for('docs_page') }}#requirements">{{ _("Supported servers") }} {{ icon('arrow') }}</a>
+  </div>
+</section>
+
+{# ================= FEATURES ================= #}
+<section class="section" id="features">
+  <div class="container">
+    <header class="section-head reveal">
+      <p class="kicker">{{ _("Features") }}</p>
+      <h2>{{ _("Every layer of defense, in one plugin") }}</h2>
+      <p>{{ _("Detection finds the suspicious moment. Replay shows it. AI Learning decides if it's real.") }}</p>
+    </header>
+    <div class="feature-grid">
+      <article class="feature reveal">
+        <span class="feature-icon">{{ icon('activity') }}</span>
+        <h3>{{ _("Movement prediction") }}</h3>
+        <p>{{ _("Simulates movement tick by tick and flags fly, speed, NoFall and step the physics can't explain.") }}</p>
+      </article>
+      <article class="feature reveal">
+        <span class="feature-icon">{{ icon('crosshair') }}</span>
+        <h3>{{ _("Combat analysis") }}</h3>
+        <p>{{ _("Reach, hitbox, KillAura, autoclicker and timer, judged on the packets the client really sends.") }}</p>
+      </article>
+      <article class="feature feature-key reveal">
+        <span class="feature-icon">{{ icon('film') }}</span>
+        <h3>{{ _("Replay evidence") }}</h3>
+        <p>{{ _("Every flag comes with a clip of the seconds before it. Scrub, step frame by frame, share with staff.") }}</p>
+      </article>
+      <article class="feature feature-key reveal">
+        <span class="feature-icon">{{ icon('cpu') }}</span>
+        <h3>{{ _("AI Learning") }}</h3>
+        <p>{{ _("Learns your server's normal lag and player habits, and vetoes flags that are just noise.") }}</p>
+      </article>
+      <article class="feature reveal">
+        <span class="feature-icon">{{ icon('user-check') }}</span>
+        <h3>{{ _("Whitelist and exceptions") }}</h3>
+        <p>{{ _("Exclude trusted players or specific mechanics so staff only sees what needs attention.") }}</p>
+      </article>
+      <article class="feature reveal">
+        <span class="feature-icon">{{ icon('key') }}</span>
+        <h3>{{ _("License panel and API") }}</h3>
+        <p>{{ _("Keys, expiry and revocation managed from your dashboard. The plugin checks a key with one API call.") }}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+{# ================= REPLAY ================= #}
+<section class="section" id="replay">
+  <div class="container">
+    <header class="section-head reveal">
+      <p class="kicker">{{ _("Replay") }}</p>
+      <h2>{{ _("Don't guess.") }} <span class="red">{{ _("Watch it.") }}</span></h2>
+      <p>{{ _("Each flag is saved with the moments that led up to it. Press play, scrub the timeline, or click an event to jump straight to it.") }}</p>
+      <p class="small">{{ _("Available on Pro and Enterprise. Replays are deleted automatically after 7 days.") }}</p>
+    </header>
+
+    <div class="replay reveal" id="replay-player" aria-label="{{ _('Interactive replay demo') }}">
+      <div class="replay-top">
+        <span class="replay-id">Flag #4821 · Player_01</span>
+        <span class="tag-red">Speed</span>
+        <span class="chip-demo">{{ _("Demo replay") }}</span>
+      </div>
+
+      <div class="replay-body">
+        <div class="replay-stage">
+          <video id="rp-video" muted playsinline preload="metadata" width="1280" height="720"
+                 poster="{{ url_for('static', filename='video/replay-poster.jpg') }}"
+                 aria-label="{{ _('Simulated replay: Player_01 is flagged for speed, AI Learning confirms it and the clip is saved') }}">
+            <source src="{{ url_for('static', filename='video/replay-demo.mp4') }}" type="video/mp4">
+          </video>
+        </div>
+
+        <ol class="replay-events" id="replay-events">
+          <li><button type="button" data-t="0"><span class="t">00.0</span>{{ _("Clip starts") }}</button></li>
+          <li><button type="button" data-t="2.6"><span class="t">02.6</span>{{ _("Sprint begins") }}</button></li>
+          <li><button type="button" data-t="5.4"><span class="t">05.4</span>{{ _("Jump") }}</button></li>
+          <li class="ev-flag"><button type="button" data-t="7.4"><span class="t">07.4</span>{{ _("Speed anomaly · 14.2 b/s (max 7.1)") }}</button></li>
+          <li class="ev-ai"><button type="button" data-t="8.1"><span class="t">08.1</span>{{ _("AI Learning: confirmed, lag ruled out") }}</button></li>
+          <li><button type="button" data-t="9.6"><span class="t">09.6</span>{{ _("Clip saved for staff review") }}</button></li>
+        </ol>
+      </div>
+
+      <div class="replay-controls">
+        <button class="ctrl" type="button" id="rp-back" aria-label="{{ _('Back half a second') }}">{{ icon('back') }}</button>
+        <button class="ctrl ctrl-play" type="button" id="rp-play" aria-label="{{ _('Play') }}" data-label-play="{{ _('Play') }}" data-label-pause="{{ _('Pause') }}">
+          <span class="when-paused">{{ icon('play') }}</span>
+          <span class="when-playing">{{ icon('pause') }}</span>
+        </button>
+        <button class="ctrl" type="button" id="rp-fwd" aria-label="{{ _('Forward half a second') }}">{{ icon('forward') }}</button>
+        <div class="timeline">
+          <input type="range" id="rp-scrub" min="0" max="1000" value="0" aria-label="{{ _('Replay timeline') }}">
+          <span class="timeline-flag" id="rp-flag-mark" aria-hidden="true"></span>
+        </div>
+        <span class="rp-time" id="rp-time">00.0 / 12.0</span>
+        <div class="speed" role="group" aria-label="{{ _('Playback speed') }}">
+          <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+          <button type="button" data-speed="1" aria-pressed="true">1×</button>
+          <button type="button" data-speed="2" aria-pressed="false">2×</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ================= AI LEARNING ================= #}
+<section class="section" id="ai">
+  <div class="container ai-grid">
+    <div class="reveal">
+      <p class="kicker">{{ _("AI Learning") }}</p>
+      <h2>{{ _("Fewer alerts.") }} <span class="red">{{ _("Only real cheats.") }}</span></h2>
+      <p class="muted">{{ _("Rule-based checks can't tell a lag spike from a speed hack. AI Learning studies how your server normally behaves and vetoes flags that are just noise, so staff only acts on what's real.") }}</p>
+
+      <div class="ai-toggle" role="group" aria-label="{{ _('Compare detection modes') }}">
+        <button type="button" data-mode="rules" aria-pressed="false">{{ _("Rules only") }}</button>
+        <button type="button" data-mode="ai" aria-pressed="true">{{ _("With AI Learning") }}</button>
+      </div>
+
+      <dl class="ai-stats">
+        <div><dt>{{ _("Staff alerts") }}</dt><dd id="ai-alerts">3</dd></div>
+        <div><dt>{{ _("False positives") }}</dt><dd id="ai-false">0</dd></div>
+      </dl>
+      <p class="small muted">{{ _("Example data for illustration.") }}</p>
+    </div>
+
+    <ul class="ai-list reveal" id="ai-list" data-mode="ai">
+      <li data-real="false"><span class="who">Player_07 · Speed</span><span class="why">{{ _("Ping spike 380 ms") }}</span><span class="verdict"></span></li>
+      <li data-real="true"><span class="who">Player_12 · Reach</span><span class="why">{{ _("3.92 blocks, steady ping") }}</span><span class="verdict"></span></li>
+      <li data-real="false"><span class="who">Player_03 · Fly</span><span class="why">{{ _("Elytra plugin active") }}</span><span class="verdict"></span></li>
+      <li data-real="true"><span class="who">Player_21 · KillAura</span><span class="why">{{ _("38 rotations per second") }}</span><span class="verdict"></span></li>
+      <li data-real="false"><span class="who">Player_09 · Timer</span><span class="why">{{ _("Server TPS dropped to 14") }}</span><span class="verdict"></span></li>
+      <li data-real="true"><span class="who">Player_15 · NoFall</span><span class="why">{{ _("No damage from 23 blocks") }}</span><span class="verdict"></span></li>
+    </ul>
+  </div>
+</section>
+
+{# ================= GET STARTED ================= #}
+<section class="section" id="start">
+  <div class="container start-grid">
+    <div class="reveal">
+      <p class="kicker">{{ _("Get started") }}</p>
+      <h2>{{ _("Protected in three steps") }}</h2>
+      <ol class="steps">
+        <li><span class="step-n">1</span><div><h3>{{ _("Sign in with Discord") }}</h3><p>{{ _("No password. Your account is created on first login.") }}</p></div></li>
+        <li><span class="step-n">2</span><div><h3>{{ _("Get a key and link it") }}</h3><p>{{ _("Pick Base, Pro or Enterprise, then link the key to your account in the dashboard.") }}</p></div></li>
+        <li><span class="step-n">3</span><div><h3>{{ _("Paste the key in the plugin") }}</h3><p>{{ _("The plugin verifies the key and unlocks your plan's checks.") }}</p></div></li>
+      </ol>
+    </div>
+
+    <div class="license-mock reveal" aria-label="{{ _('Example license card') }}">
+      <div class="lm-head">
+        <span class="badge badge-pro">Pro</span>
+        <span class="status-dot">{{ _("Active") }}</span>
+      </div>
+      <p class="lm-label">{{ _("License key") }}</p>
+      <div class="key-row">
+        <code class="key" data-key="MYTH-EXMP-L3K3-Y4AB-C9D2" data-masked="true">MYTH-••••-••••-••••-C9D2</code>
+        <button class="icon-btn" type="button" data-reveal aria-label="{{ _('Show key') }}">{{ icon('eye') }}</button>
+        <button class="icon-btn" type="button" data-copy aria-label="{{ _('Copy key') }}">{{ icon('copy') }}</button>
+      </div>
+      <div class="lm-meta">
+        <div><span>{{ _("Renews") }}</span><b>{{ _("Monthly") }}</b></div>
+        <div><span>{{ _("Replays") }}</span><b>{{ _("7 days") }}</b></div>
+        <div><span>{{ _("AI Learning") }}</span><b class="red">{{ _("On") }}</b></div>
+      </div>
+      <p class="small muted">{{ _("Example card. Your real keys appear in your dashboard.") }}</p>
+    </div>
+  </div>
+</section>
+
+{# ================= PRICING ================= #}
+<section class="section" id="pricing">
+  <div class="container">
+    <header class="section-head center reveal">
+      <p class="kicker">{{ _("Pricing") }}</p>
+      <h2>{{ _("Monthly plans. No commitment.") }}</h2>
+      <p>{{ _("Each plan is a one-month license: buy it and renew it with a ticket on our Discord server. Every tier includes everything below it.") }}</p>
+    </header>
+
+    <div class="pricing">
+      {% for key, tier in TIERS.items() %}
+      <article class="plan reveal {% if key == 'pro' %}plan-featured{% endif %}">
+        {% if key == 'pro' %}<span class="plan-flag">{{ _("Most popular") }}</span>{% endif %}
+        <h3>{{ tier.name }}</h3>
+        <p class="plan-desc">{{ _(tier.description) }}</p>
+        <p class="plan-price">{{ tier.price }}<span>{{ _(tier.period) }}</span></p>
+        {% if tier.lifetime_price %}<p class="lifetime-note">{{ _("or %(price)s lifetime, one-time payment", price=tier.lifetime_price) }}</p>{% endif %}
+        {% if key == 'free' and FREE_LINKS %}
+          <a class="btn btn-outline full" href="{{ FREE_LINKS[0].url }}" target="_blank" rel="noopener">{{ _("Download free") }}</a>
+          {% if FREE_LINKS|length > 1 %}<p class="free-links small">{{ _("Also on:") }} {% for l in FREE_LINKS[1:] %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+        {% else %}
+        {% if key != 'free' and SUPPORT_DISCORD %}
+        <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
+        {% else %}
+        <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ url_for('dashboard', _anchor='plans') if current_user else url_for('login') }}">
+          {% if key == 'free' %}{{ _("Start free") }}{% else %}{{ _("Get %(name)s", name=tier.name) }}{% endif %}
+        </a>
+        {% endif %}
+        {% endif %}
+        <ul class="plan-list">
+          {% for f in tier.features %}<li>{{ icon('check') }}<span>{{ _(f) }}</span></li>{% endfor %}
+        </ul>
+      </article>
+      {% endfor %}
+    </div>
+
+    <div class="compare-wrap reveal">
+      <table class="compare">
+        <caption class="sr-only">{{ _("Feature comparison by tier") }}</caption>
+        <thead>
+          <tr><th scope="col">{{ _("Feature") }}</th><th scope="col">Free (beta)</th><th scope="col">Base</th><th scope="col" class="col-pro">Pro</th><th scope="col">Enterprise</th></tr>
+        </thead>
+        <tbody>
+          {% for label, free, base, pro, ent in PLAN_MATRIX %}
+          <tr>
+            <th scope="row">{{ _(label) }}</th>
+            {% for v in (free, base, pro, ent) %}
+            <td{% if loop.index == 3 %} class="col-pro"{% endif %}>{% if v is sameas true %}{{ icon('check', 'yes') }}<span class="sr-only">{{ _("Included") }}</span>{% elif v is none %}{{ icon('minus', 'no') }}{% else %}{{ _(v) }}{% endif %}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{# ================= FAQ ================= #}
+<section class="section" id="faq">
+  <div class="container faq-grid">
+    <header class="section-head reveal">
+      <p class="kicker">{{ _("FAQ") }}</p>
+      <h2>{{ _("Questions, answered") }}</h2>
+      <p>{{ _("Something else?") }} {% if SUPPORT_DISCORD %}<a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Ask us on Discord") }}</a>{% else %}{{ _("Ask us on Discord") }}{% endif %}.</p>
+    </header>
+    <div class="faq reveal">
+      <details open>
+        <summary>{{ _("Do I need a password?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("No. You sign up and log in only with Discord. Your account is created automatically the first time you sign in.") }}</p>
+      </details>
+      <details>
+        <summary>{{ _("Do I need a key for the Free tier?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("No. Install the plugin and it starts the Free plan (beta) right away: basic movement checks, Crash and BadPackets protection, alerts only. You only need a key for Base, Pro or Enterprise.") }}</p>
+        {% if FREE_LINKS %}<p class="free-links">{{ _("Free version on:") }} {% for l in FREE_LINKS %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+      </details>
+      <details>
+        <summary>{{ _("How long are replays kept?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("Replays are included in Pro and Enterprise and are deleted automatically after 7 days.") }}</p>
+      </details>
+      <details>
+        <summary>{{ _("Which servers does Mythras run on?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("Paper or Spigot 1.21 or newer, and Folia with the Enterprise plan. You need Java 21+ and PacketEvents 2.14.0 or newer.") }} <a href="{{ url_for('docs_page') }}#requirements">{{ _("Docs") }}</a></p>
+      </details>
+      <details>
+        <summary>{{ _("What does AI Learning actually do?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("It learns your server's normal behaviour, like lag patterns and plugin mechanics, and filters out flags that match it. Staff get fewer alerts, and the ones they get are real.") }}</p>
+      </details>
+      <details>
+        <summary>{{ _("Can I upgrade later?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("Yes. Contact support and we'll assign the higher tier. Each tier includes everything below it.") }}</p>
+      </details>
+      <details>
+        <summary>{{ _("What happens when my month ends?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("Your key stops working at the end of the month and the plugin goes back to Free. To keep your plan, open a ticket on our Discord server before it expires: we add one more month to the same key.") }}</p>
+      </details>
+      <details>
+        <summary>{{ _("How does the plugin verify my license?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("The plugin sends your key to our API and gets back whether it's valid and which tier it unlocks.") }}</p>
+      </details>
+      <details>
+        <summary>{{ _("Which cookies do you use?") }}{{ icon('plus') }}</summary>
+        <p>{{ _("Only essential ones: your login session, form protection and your language choice. No tracking or advertising cookies.") }} <a href="{{ url_for('cookie_policy') }}">{{ _("Cookie Policy") }}</a></p>
+      </details>
+    </div>
+  </div>
+</section>
+
+{# ================= CTA ================= #}
+<section class="cta">
+  <div class="container cta-inner reveal">
+    <h2>{{ _("Your server deserves") }} <span class="red">{{ _("fair games.") }}</span></h2>
+    <p>{{ _("Start with the Free tier today. Upgrade when you need replays and AI Learning.") }}</p>
+    {% if current_user %}
+      <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}">{{ _("Open dashboard") }} {{ icon('arrow') }}</a>
+    {% else %}
+      <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}">{{ icon('discord') }}{{ _("Start with Discord") }}</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

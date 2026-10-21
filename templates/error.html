@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Error") }} {{ code }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<section class="error-page">
+  <div class="container center">
+    <p class="error-code">{{ code }}</p>
+    <h1>{{ message }}</h1>
+    <p class="muted">{{ _("The page you asked for isn't available.") }}</p>
+    <a class="btn btn-primary" href="{{ url_for('index') }}">{{ _("Back to home") }}</a>
+  </div>
+</section>
+{% endblock %}

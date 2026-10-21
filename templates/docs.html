@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{# Customer guide. Texts with inline <code>/<b> markup come from our own translation files, so they are marked safe. #}
+{% macro cell(v) -%}
+  {%- if v is sameas true -%}<span class="yes-text">{{ icon('check') }}</span><span class="sr-only">{{ _("Included") }}</span>
+  {%- elif v is none -%}<span class="muted">-</span>
+  {%- else -%}{{ _(v) }}{%- endif -%}
+{%- endmacro %}
+{% macro code(text) -%}
+<div class="doc-code"><pre><code>{{ text }}</code></pre><button class="doc-copy" type="button" data-copy-code aria-label="{{ _('Copy') }}">{{ icon('copy') }}<span>{{ _("Copy") }}</span></button></div>
+{%- endmacro %}
+{% macro plan_label(p) -%}{{ _("all") if p == "all" else (_("console only") if p == "console only" else _(p)) }}{%- endmacro %}
+{% block title %}{{ _("Docs") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container wiki">
+  <aside class="wiki-toc" aria-label="{{ _('Docs contents') }}">
+    <label class="doc-search">
+      <span class="sr-only">{{ _("Search the docs") }}</span>
+      <input type="search" id="doc-search" placeholder="{{ _('Search the docs') }}" autocomplete="off" spellcheck="false">
+    </label>
+    <p class="wiki-toc-title">{{ _("Contents") }}</p>
+    <ol>
+      <li><a href="#requirements">{{ _("1. Requirements") }}</a></li>
+      <li><a href="#installation">{{ _("2. Installation") }}</a></li>
+      <li><a href="#plans">{{ _("3. Plans") }}</a></li>
+      <li><a href="#checks">{{ _("All checks") }}</a></li>
+      <li><a href="#license">{{ _("4. Managing your license") }}</a></li>
+      <li><a href="#commands">{{ _("5. Commands") }}</a></li>
+      <li><a href="#permissions">{{ _("6. Permissions") }}</a></li>
+      <li><a href="#configuration">{{ _("7. Configuration") }}</a></li>
+      <li><a href="#api">{{ _("8. Developer API and placeholders") }}</a></li>
+      <li><a href="#news">{{ _("9. What's new") }}</a></li>
+      <li><a href="#faq">{{ _("10. FAQ") }}</a></li>
+    </ol>
+  </aside>
+
+  <article class="wiki-body">
+    <header class="wiki-head">
+      <p class="kicker"><span class="kicker-dot"></span>{{ _("Docs") }}</p>
+      <h1>{{ _("Mythras: customer guide") }}</h1>
+      <p class="lead">{{ _("Mythras is a packet-based anticheat for Paper, Spigot and Folia, Minecraft <b>1.21 → 26.x</b>.")|safe }}</p>
+      <div class="wiki-facts">
+        <span><b>{{ DOCS.CHECKS|length }}</b> {{ _("checks") }}</span>
+        <span><b>1.21 → 26.x</b> Minecraft</span>
+        <span><b>Java 21+</b> {{ _("required") }}</span>
+        <span class="folia-chip">{{ icon('check') }}Folia: Enterprise</span>
+      </div>
+    </header>
+    <p class="doc-noresults muted" id="doc-noresults" hidden>{{ _("No results. Try another word, e.g. a check or a command.") }}</p>
+
+    <section id="requirements" class="wiki-section doc-section">
+      <h2>{{ _("1. Requirements") }}</h2>
+      <ul class="wiki-list">
+        <li>{{ _("Paper or Spigot 1.21 or newer (Folia: Enterprise plan only), Java 21+.") }}</li>
+        <li>{{ _('<a href="https://modrinth.com/plugin/packetevents" target="_blank" rel="noopener">PacketEvents</a> <b>2.14.0 or newer</b> in <code>plugins/</code>.')|safe }}</li>
+        <li>{{ _("Optional: ViaVersion (older clients), Geyser/Floodgate (Bedrock players), WorldGuard (region exemptions), PlaceholderAPI (placeholders, Enterprise).") }}</li>
+      </ul>
+      <div class="table-wrap">
+        <table class="table wiki-table">
+          <thead><tr><th scope="col">{{ _("Server software") }}</th><th scope="col">{{ _("Supported") }}</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">{{ _("Paper (and forks such as Purpur)") }}</th><td><span class="yes-text">{{ icon('check') }}{{ _("All plans") }}</span></td></tr>
+            <tr><th scope="row">Spigot</th><td><span class="yes-text">{{ icon('check') }}{{ _("All plans") }}</span></td></tr>
+            <tr class="row-folia"><th scope="row">Folia</th><td><span class="yes-text">{{ icon('check') }}</span><span class="badge badge-enterprise">Enterprise</span> {{ _("only") }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="wiki-callout is-green">
+        <h3>{{ icon('check') }}{{ _("Available on Folia too") }}</h3>
+        <p>{{ _("Folia is supported with the Enterprise plan.") }}</p>
+      </div>
+    </section>
+
+    <section id="installation" class="wiki-section doc-section">
+      <h2>{{ _("2. Installation") }}</h2>
+      <ol class="steps">
+        <li><span class="step-n">1</span><div><h3>{{ _("Download") }}</h3><p>{{ _("Download <code>Mythras-&lt;version&gt;.jar</code> (the same file for every plan).")|safe }}</p></div></li>
+        <li><span class="step-n">2</span><div><h3>{{ _("Add it to plugins") }}</h3><p>{{ _("Put it in <code>plugins/</code> together with PacketEvents.")|safe }}</p></div></li>
+        <li><span class="step-n">3</span><div><h3>{{ _("Start the server") }}</h3><p>{{ _("Without a key Mythras starts the <b>Free</b> plan (beta test).")|safe }}</p></div></li>
+        <li><span class="step-n">4</span><div><h3>{{ _("Add your key") }}</h3><p>{{ _("To use your plan, type in the <b>server console</b>:")|safe }}</p>{{ code("mlicense MYTH-XXXX-XXXX-XXXX-XXXX") }}<p>{{ _("then <b>restart</b> the server. The console shows <code>License valid: plan PRO.</code> (or your plan).")|safe }}</p></div></li>
+      </ol>
+      <p>{{ _("The key is saved in <code>plugins/Mythras/license.yml</code>. Do not copy this file to other servers: each server has its own <code>server-id</code>, and the number of servers per key depends on your plan.")|safe }}</p>
+      {% if current_user %}<p><a class="btn btn-outline btn-sm" href="{{ url_for('dashboard') }}">{{ icon('key') }}{{ _("My licenses") }}</a></p>{% endif %}
+    </section>
+
+    <section id="plans" class="wiki-section doc-section">
+      <h2>{{ _("3. Plans") }}</h2>
+      <div class="table-wrap">
+        <table class="table wiki-table doc-plans">
+          <thead><tr><th scope="col"><span class="sr-only">{{ _("Feature") }}</span></th><th scope="col">Free (beta)</th><th scope="col">Base</th><th scope="col">Pro</th><th scope="col">Enterprise</th></tr></thead>
+          <tbody>
+            {% for label, free, base, pro, ent in DOCS.PLAN_MATRIX %}
+            <tr><th scope="row">{{ _(label) }}</th><td>{{ cell(free) }}</td><td>{{ cell(base) }}</td><td>{{ cell(pro) }}</td><td>{{ cell(ent) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p>{{ _("<b>AI learning.</b> The AI looks at 20 combat behaviours every 20 hits (clicks, rotations, aim, reach, target switching) and learns what is normal on your server. Standard (Pro): it learns by itself from punished and clean players, with fixed settings, and only sends alerts. Advanced (Enterprise): every setting can be tuned, staff can train it (<code>/ac ai label</code>), and it can punish.")|safe }}</p>
+      <p>{{ _("<b>Mythras Cloud AI (Enterprise).</b> Every Enterprise server also gets a global model, trained every hour on the combat data of all Enterprise servers. It protects a new server from the first day, before your own AI has learned enough; then the two are combined. The global model is a small neural network when that is more accurate than a simple model, so it also recognises combinations (for example fast turning together with perfectly steady aim). What is shared: 20 numbers per 20 hits (click speed and rhythm, how the view turns, reach, hit ratio, aim steadiness...) and whether the player was punished, never names, UUIDs or IP addresses. <code>ai.cloud.share: false</code> only downloads the model, <code>ai.cloud.enabled: false</code> turns it off. <code>/ac ai status</code> shows the global model.")|safe }}</p>
+      <p>{{ _("<b>Why the AI flagged someone.</b> Every AI alert says why, for example <code>combat model 95% cheating: very regular clicks, aim locked on the body</code>: the behaviours that are most unusual compared to the normal players of your server. You see it in the alert, in <code>/ac info &lt;player&gt;</code> and in the replay.")|safe }}</p>
+      <p>{{ _("<b>Reviewing suspects (Enterprise).</b> <code>/ac ai review</code> opens the list of players the AI found suspicious in the last hour, also if they already left. Left click opens their replays; right click = cheating, shift + click = legit. Your verdict teaches the AI (on your server and, with Cloud AI, everywhere), so it gets better the more you use it.")|safe }}</p>
+      <p>{{ _("Bedrock players (Geyser) are never judged by the AI: touch controls and aim assist would look like cheating.") }}</p>
+      <p>{{ _("The Free plan only sends alerts to staff: no setbacks, no punishments.") }}</p>
+      <p><a class="btn btn-outline btn-sm" href="{{ url_for('index') }}#pricing">{{ _("Pricing") }}</a></p>
+    </section>
+
+    <section id="checks" class="wiki-section doc-section">
+      <h2>{{ _("All checks") }}</h2>
+      <p>{{ _("Every check is configured under <code>checks.&lt;name&gt;</code> in <code>config.yml</code>. The badge shows the lowest plan that includes it; higher plans include everything below.")|safe }}</p>
+      <div class="wiki-filter" role="group" aria-label="{{ _('Show checks of plan') }}">
+        <button type="button" class="btn btn-sm btn-primary" data-plan-filter="all" aria-pressed="true">{{ _("All") }}</button>
+        {% set n = DOCS.counts() %}
+        {% for p in DOCS.PLAN_ORDER %}<button type="button" class="btn btn-sm btn-outline" data-plan-filter="{{ p }}" aria-pressed="false">{{ p|plan_name }} ({{ n[p] }})</button>{% endfor %}
+      </div>
+      {% for cat, label in DOCS.CATEGORIES %}
+      <h3 class="wiki-cat">{{ _(label) }}</h3>
+      <div class="table-wrap">
+        <table class="table wiki-table wiki-checks">
+          <thead><tr><th scope="col">{{ _("Check") }}</th><th scope="col">{{ _("What it detects") }}</th><th scope="col">{{ _("Plan") }}</th></tr></thead>
+          <tbody>
+            {% for name, c, plan, desc in DOCS.CHECKS if c == cat %}
+            <tr data-plan="{{ plan }}"><th scope="row" class="mono">{{ name }}</th><td>{{ _(desc) }}</td><td><span class="badge badge-{{ plan }}">{{ plan|plan_name }}</span></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+    </section>
+
+    <section id="license" class="wiki-section doc-section">
+      <h2>{{ _("4. Managing your license") }}</h2>
+      <p>{{ _("On our Discord server:") }}{% if SUPPORT_DISCORD %} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Discord server") }}</a>{% endif %}</p>
+      <ul class="wiki-list">
+        <li>{{ _("<code>/license redeem key:&lt;KEY&gt;</code>: links the key to your Discord account and gives you the plan role.")|safe }}</li>
+        <li>{{ _("<code>/license info</code>: your licenses, plan, expiry and servers in use.")|safe }}</li>
+        <li>{{ _("<code>/license reset key:&lt;KEY&gt;</code>: frees the servers of your key (for example after moving to a new machine). Once every 24 hours.")|safe }}</li>
+      </ul>
+      <p>{{ _("The same actions are available in the customer area of this website.") }} <a href="{{ url_for('dashboard') }}">{{ _("My licenses") }}</a></p>
+      <p>{{ _("<b>Moving to another machine:</b> reset the servers of your key, then use <code>mlicense &lt;KEY&gt;</code> on the new server.")|safe }}</p>
+      <p>{{ _("<b>Updates:</b> paid plans update themselves. At every restart the server downloads the latest version of your plan. Download a new <code>Mythras-&lt;version&gt;.jar</code> only when we announce it.")|safe }}</p>
+      <p>{{ _("<b>If our license server is unreachable</b>, your server keeps starting with your plan for <b>72 hours</b>.")|safe }}</p>
+    </section>
+
+    <section id="commands" class="wiki-section doc-section">
+      <h2>{{ _("5. Commands") }}</h2>
+      <p>{{ _("Main command: <code>/mythras</code> (aliases <code>/ac</code>, <code>/myth</code>).")|safe }}</p>
+      <div class="table-wrap">
+        <table class="table wiki-table">
+          <thead><tr><th scope="col">{{ _("Command") }}</th><th scope="col">{{ _("What it does") }}</th><th scope="col">{{ _("Permission") }}</th><th scope="col">{{ _("Plan") }}</th></tr></thead>
+          <tbody>
+            {% for cmd, desc, perm, plan in DOCS.COMMANDS %}
+            <tr><th scope="row"><code>{{ cmd }}</code>{% if cmd.startswith('mlicense') %} <span class="small muted">({{ _("console") }})</span>{% endif %}</th><td>{{ _(desc) }}</td><td>{% if '.' in perm %}<code>{{ perm }}</code>{% else %}{{ plan_label(perm) }}{% endif %}</td><td class="small">{{ plan_label(plan) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="permissions" class="wiki-section doc-section">
+      <h2>{{ _("6. Permissions") }}</h2>
+      <div class="table-wrap">
+        <table class="table wiki-table">
+          <thead><tr><th scope="col">{{ _("Permission") }}</th><th scope="col">{{ _("Default") }}</th><th scope="col">{{ _("Meaning") }}</th></tr></thead>
+          <tbody>
+            {% for perm, default, desc in DOCS.PERMISSIONS %}
+            <tr><th scope="row"><code>{{ perm }}</code></th><td class="mono small">{{ default }}</td><td>{{ _(desc) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="configuration" class="wiki-section doc-section">
+      <h2>{{ _("7. Configuration") }}</h2>
+      <p>{{ _("Files in <code>plugins/Mythras/</code>:")|safe }}</p>
+      <ul class="wiki-list">
+        <li>{{ _("<code>config.yml</code>: contains only the options of your plan. After an upgrade the new options are added at the end.")|safe }}</li>
+        <li>{{ _("<code>messages_&lt;code&gt;.yml</code>: all texts, hex colours and gradients supported, in 8 languages (en, it, es, pt, de, fr, pl, zh). Choose with <code>/ac lang &lt;code&gt;</code> or <code>language: en</code>.")|safe }}</li>
+      </ul>
+      <h3 class="wiki-cat">{{ _("Main options") }}</h3>
+      <ul class="wiki-list">
+        <li>{{ _("<code>language</code>: <code>en</code>, <code>it</code>, <code>es</code>, <code>pt</code>, <code>de</code>, <code>fr</code>, <code>pl</code> or <code>zh</code> (or change it in game with <code>/ac lang &lt;code&gt;</code>).")|safe }}</li>
+        <li>{{ _("<code>database.type</code>: <code>file</code> (default), <code>sqlite</code>, <code>mysql</code>, <code>mongodb</code>. If the connection fails Mythras falls back to <code>file</code>.")|safe }}</li>
+        <li>{{ _("<code>alerts</code>: alerts in chat and console, <code>cooldown-ms</code>, <code>click-command</code>.")|safe }}</li>
+        <li>{{ _("<code>exemptions</code> (Pro+): whitelist and exemptions. <code>players</code> (names or UUIDs), <code>worlds</code> and WorldGuard <code>regions</code> where no check runs (staff, minigames, launch pads).")|safe }}</li>
+        <li>{{ _("<code>bedrock</code>: checks used on Bedrock players (Geyser).")|safe }}</li>
+        <li>{{ _("<code>checks.&lt;name&gt;</code>: every check has:")|safe }}
+          <ul>
+            <li><code>enabled</code>;</li>
+            <li>{{ _("<code>buffer</code>: how many proofs are needed before a flag (higher = fewer false flags);")|safe }}</li>
+            <li>{{ _("<code>vl-weight</code> and <code>vl-decay-per-second</code>;")|safe }}</li>
+            <li>{{ _("<code>punish-vl</code>: VL that runs the punishment, 0 = alerts only (Base+);")|safe }}</li>
+            <li>{{ _("<code>punish-commands</code>: punishment commands for this check only (Base+).")|safe }}</li>
+          </ul>
+        </li>
+        <li>{{ _("<code>punishments.commands</code> (Base+): <code>[kick] &lt;message&gt;</code>, <code>[message] &lt;text&gt;</code> or any console command, for example <code>ban %player% 7d Cheating</code>. Placeholders: <code>%player%</code>, <code>%check%</code>, <code>%vl%</code>, <code>%kick-message%</code>.")|safe }}</li>
+        <li>{{ _("<code>setback</code> (Base+): pulls the cheater back to the last valid position.")|safe }}</li>
+        <li>{{ _("<code>discord</code> (Base+): webhook for alerts and punishments.")|safe }}</li>
+        <li>{{ _("<code>mitigations</code> (Pro+): cancels impossible hits, halves damage after combat flags, health filter, Anti-ESP, and")|safe }}
+          <ul>
+            <li>{{ _("<code>anti-storage-esp</code>: containers the player cannot see are sent as the block next to them, so StorageESP/ChestESP show nothing behind walls (<code>blocks</code> = which containers);")|safe }}</li>
+            <li>{{ _("<code>anti-xray</code>: ores out of sight are sent as rock, also those open to caves, until the player can see them (<code>blocks</code>, <code>max-y</code>, <code>max-distance</code>). It replaces Paper's anti-xray, which you can leave off.")|safe }}</li>
+            <li>{{ _("Anti-ESP works on its own thread, so it costs almost nothing on the main thread. Walls changed by commands or WorldEdit (no block event) are noticed within 3 seconds; walls broken, placed or blown up by players at once.") }}</li>
+          </ul>
+        </li>
+        <li>{{ _("<code>replay</code> (Pro+): <code>mode: flag</code> records flagged players, <code>mode: always</code> keeps the last 25 seconds of everyone. <code>keep-days</code>: how long replays are kept (at most 7 days: older ones are deleted).")|safe }}</li>
+        <li>{{ _("<code>ai</code> (Pro+): self-learning model. Enterprise can also tune it and train it with staff labels (<code>/ac ai label</code>).")|safe }} {{ _("<code>ai.cloud</code> (Enterprise): Mythras Cloud AI, <code>enabled</code> and <code>share</code> (see Plans).")|safe }}</li>
+        <li>{{ _("<code>checks.freecam</code> (Base+): clicks on blocks hidden behind walls (FreeCam, GhostHand) are refused with <code>cancel: true</code> (a chest behind a wall stays closed) and flagged.")|safe }}</li>
+        <li>{{ _("<code>checks.xray</code> (Base+): <code>min-veins</code>, <code>max-stone-per-vein</code>, <code>window-minutes</code>, <code>ores</code>. Alerts only by default: check the player's replay before punishing. Paper's anti-xray (<code>engine-mode: 2</code> in <code>paper-world-defaults.yml</code>) works well together with it.")|safe }}</li>
+        <li>{{ _("<code>network</code> (Enterprise): alerts of all servers behind BungeeCord/Velocity.")|safe }}</li>
+      </ul>
+      <div class="wiki-callout">
+        <h3>{{ icon('check') }}{{ _("Tip") }}</h3>
+        <p>{{ _("New checks start with <code>punish-vl: 0</code> (alerts only). Watch the alerts for a few days, then enable punishments.")|safe }}</p>
+      </div>
+    </section>
+
+    <section id="api" class="wiki-section doc-section">
+      <h2>{{ _("8. Developer API and placeholders") }} <span class="badge badge-enterprise">Enterprise</span></h2>
+      <ul class="wiki-list">
+        <li>{{ _("Events: <code>MythrasFlagEvent</code> (cancellable flag) and <code>MythrasPunishEvent</code> (cancellable punishment).")|safe }}</li>
+        <li>{{ _("<code>MythrasAPI.get()</code> methods:")|safe }}
+          <ul>
+            <li><code>getVl(player, check)</code>, <code>getTotalVl(player)</code>, <code>getViolations(player)</code>;</li>
+            <li><code>getAiProbability(player)</code>, <code>getClient(player)</code>, <code>isBedrock(player)</code>;</li>
+            <li>{{ _("<code>exempt(player, millis)</code>: exempt a player for a while (for example during a custom launch pad).")|safe }}</li>
+          </ul>
+        </li>
+        <li>PlaceholderAPI:
+          <ul>
+            <li><code>%mythras_vl%</code>, <code>%mythras_client%</code>, <code>%mythras_version%</code>, <code>%mythras_ai%</code>;</li>
+            <li><code>%mythras_bedrock%</code>, <code>%mythras_checked%</code>, <code>%mythras_banwave%</code>.</li>
+          </ul>
+        </li>
+      </ul>
+      {{ code("// exempt a player for 3 seconds during your launch pad\nMythrasAPI.get().exempt(player, 3000);") }}
+    </section>
+
+    <section id="news" class="wiki-section doc-section">
+      <h2>{{ _("9. What's new") }}</h2>
+      <ul class="wiki-list">
+        <li>{{ _("<b>1.15</b>: the AI looks at 20 behaviours instead of 12; every AI alert says why; <code>/ac ai review</code> (Enterprise) to judge the suspects of the last hour; Mythras Cloud AI uses a neural network when it is more accurate. Your AI keeps what it already learned.")|safe }}</li>
+        <li>{{ _("<b>1.14.1 / 1.14.2</b>: performance: Anti-ESP on its own thread, lighter work per player (the main-thread time of Mythras is about a third of before).")|safe }}</li>
+        <li>{{ _("<b>1.14</b>: Mythras Cloud AI (Enterprise): a global model trained on all Enterprise servers, active from the first day.")|safe }}</li>
+      </ul>
+    </section>
+
+    <section id="faq" class="wiki-section doc-section">
+      <h2>{{ _("10. FAQ") }}</h2>
+      <dl class="wiki-faq">
+        <dt>{{ _("A legit player gets flagged.") }}</dt>
+        <dd>{{ _("Use <code>/ac info &lt;player&gt;</code> and <code>/ac debug &lt;player&gt;</code>, then send us the check name, the details of the alert, the client and the version. Meanwhile raise that check's <code>buffer</code> or set its <code>punish-vl: 0</code>.")|safe }}</dd>
+        <dt>{{ _("A plugin launches players (launch pads, knockback, custom elytra).") }}</dt>
+        <dd>{{ _("Add the world or region to <code>exemptions</code> (Pro+), or call <code>MythrasAPI.get().exempt(player, millis)</code> from your plugin (Enterprise).")|safe }}</dd>
+        <dt>{{ _('The console says "License key refused".') }}</dt>
+        <dd>{{ _("The message says why:") }}
+          <ul class="wiki-list">
+            <li>{{ _("<code>the key does not exist</code>: check the key;")|safe }}</li>
+            <li>{{ _("<code>revoked</code> or <code>expired</code>;")|safe }}</li>
+            <li>{{ _("<code>maximum number of servers</code>: reset the servers with <code>/license reset</code>.")|safe }}</li>
+          </ul>
+        </dd>
+        <dt>{{ _('"License server unreachable"') }}</dt>
+        <dd>{{ _("The server starts with the saved copy of your plan for up to 72 hours. Check that the machine can reach <code>https://license.mythras.eu</code>.")|safe }}</dd>
+        <dt>{{ _("Does Mythras lag the server?") }}</dt>
+        <dd>{{ _("No: checks run on the network threads, Anti-ESP and the AI on their own threads. With 100 players fighting, Mythras uses about 0.3 ms of the 50 ms of a tick. <code>/ac perf</code> shows how much time Mythras uses per tick on your server.")|safe }}</dd>
+        <dt>{{ _("The AI flagged a legit player.") }}</dt>
+        <dd>{{ _("Open <code>/ac ai review</code> (Enterprise) and shift + click the player: their fights are taught to the AI as legit. On Pro, the AI only sends alerts and never punishes. The alert says why it flagged (for example <code>very regular clicks</code>): send it to us with the player's client if it keeps happening.")|safe }}</dd>
+        <dt>{{ _("Support") }}</dt>
+        <dd>{{ _("Open a ticket on our Discord server with your key (only the first part, e.g. <code>MYTH-ABCD-…</code>), server version, Mythras version and the console log.")|safe }}{% if SUPPORT_DISCORD %} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Discord server") }}</a>{% endif %}</dd>
+      </dl>
+    </section>
+  </article>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

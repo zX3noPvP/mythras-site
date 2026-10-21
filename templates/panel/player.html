@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box with context %}
+{% set page_ep = 'admin_panel' if admin else 'panel' %}
+{% set player_ep = 'admin_panel_player' if admin else 'panel_player' %}
+{% block title %}{{ (p.player if p else name) }} · {{ _("Panel") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app panel-page">
+  <p class="back-link"><a href="{{ url_for(page_ep, key=filters.key or None, days=filters.days) }}">← {{ _("Panel") }}</a></p>
+  <header class="app-head">
+    <div class="user-card">
+      {% if p and p.uuid %}<img class="head-lg" src="{{ url_for('player_head', uuid=p.uuid) }}" alt="" width="56" height="56">{% else %}<span class="avatar-fallback">{{ name[:1]|upper }}</span>{% endif %}
+      <div>
+        <p class="kicker">{{ _("Player") }}</p>
+        <h1>{{ p.player if p else name }}</h1>
+        {% if p and p.uuid %}
+        <div class="key-row">
+          <code class="key mono small" data-key="{{ p.uuid }}">{{ p.uuid }}</code>
+          <button class="icon-btn" type="button" data-copy-code aria-label="{{ _('Copy UUID') }}">{{ icon('copy') }}</button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <nav class="seg" aria-label="{{ _('Period') }}">
+      {% for d in (1, 7, 30) %}<a href="{{ url_for(player_ep, name=name, key=filters.key or None, days=d) }}" {% if filters.days == d %}aria-current="page"{% endif %}>{{ _("1 day") if d == 1 else _("%(n)s days", n=d) }}</a>{% endfor %}
+    </nav>
+  </header>
+  {% if admin %}{{ admin_nav('panel') }}{% endif %}
+  {{ api_error_box(api_error) }}
+
+  {% if p %}
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('crosshair') }}{{ _("Checks") }}</h2></div>
+    <div class="panel-body">
+      {% if p.checks %}
+      <ul class="bar-list">
+        {% for c in p.checks %}
+        <li>
+          <span class="mono">{{ c.check }}</span>
+          <span class="small muted">{{ _("Alert") if c.type == 'alert' else (_("Punishment") if c.type == 'punish' else _("Replay")) }} · <time class="js-time" data-ms="{{ c.last }}" data-mode="ago" datetime="{{ c.last|ms_iso }}">{{ c.last|ms_date }}</time></span>
+          <span class="bar-track"><span class="bar-fill {% if c.type == 'punish' %}is-punish{% elif c.type == 'replay' %}is-replay{% endif %}" style="width: {{ (100 * c.count / top)|round(1) }}%"></span></span>
+          <b class="mono">{{ c.count }}</b>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="muted">{{ _("No alerts in this period") }}</p>{% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('activity') }}{{ _("History") }}</h2><span class="muted small">{{ _("Latest 100 events") }}</span></div>
+    <p class="muted small panel-note">{{ _("To watch a replay in game, copy its command and run it on your server.") }}</p>
+    <ul class="feed">
+      {% with events=p.events, admin=admin, server_names=server_names, owners=owners, names=names %}{% include "panel/_rows.html" %}{% endwith %}
+    </ul>
+    {% if not p.events %}<p class="empty-line muted">{{ _("No alerts in this period") }}</p>{% endif %}
+  </section>
+  {% endif %}
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

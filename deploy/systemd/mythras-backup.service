@@ -1,0 +1,6 @@
+[Unit]
+Description=Mythras nightly backup (website + license server)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/mythras-site/deploy/backup.sh

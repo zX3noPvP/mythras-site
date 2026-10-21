@@ -1,0 +1,39 @@
+# Mythras website for Caddy (the license server's Caddy already owns ports 80/443).
+# Copy to /etc/caddy/mythras.caddy and add to /etc/caddy/Caddyfile:   import /etc/caddy/mythras.caddy
+# Caddy gets and renews the HTTPS certificate automatically and redirects HTTP -> HTTPS.
+# The site lives only on www.mythras.eu (license.mythras.eu is the license server, configured separately).
+
+www.mythras.eu {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	# small bodies everywhere, except the admin jar upload
+	@upload path /admin/downloads/upload
+	@notupload not path /admin/downloads/upload
+	request_body @notupload {
+		max_size 64KB
+	}
+	request_body @upload {
+		max_size 100MB
+	}
+
+	# static files straight from disk, cached
+	handle_path /static/* {
+		root * /opt/mythras-site/static
+		header Cache-Control "public, max-age=604800"
+		header X-Content-Type-Options "nosniff"
+		file_server
+	}
+
+	# everything else -> gunicorn. {client_ip} is the real visitor IP: behind Cloudflare it comes
+	# from CF-Connecting-IP once trusted_proxies is set in the Caddyfile global options.
+	handle {
+		reverse_proxy 127.0.0.1:8000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+}

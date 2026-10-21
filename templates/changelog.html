@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _("Changelog") }} · Mythras AntiCheat{% endblock %}
+{% block og_title %}{{ _("Changelog") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<article class="container legal changelog">
+  <p class="kicker"><span class="kicker-dot"></span>{{ _("Changelog") }}</p>
+  <h1>{{ _("What's new in Mythras") }}</h1>
+  <p class="muted">{{ _("Versions of the Mythras plugin published on this website. Customers with a license download the latest one from their dashboard.") }}</p>
+
+  {% for v in versions %}
+  <section class="release{% if loop.first %} is-latest{% endif %}">
+    <header>
+      <h2>{{ v.name }} <span class="mono">{{ v.version }}</span>{% if loop.first %} <span class="badge badge-pro">{{ _("Latest") }}</span>{% endif %}</h2>
+      <time class="muted small" datetime="{{ v.uploaded }}">{{ v.uploaded|date }}</time>
+    </header>
+    {% if v.changelog %}<p class="release-notes">{{ v.changelog }}</p>{% else %}<p class="muted">{{ _("Improvements and fixes.") }}</p>{% endif %}
+  </section>
+  {% else %}
+  <p class="muted">{{ _("No version published yet.") }}</p>
+  {% endfor %}
+
+  <p><a class="btn btn-outline btn-sm" href="{{ url_for('docs_page') }}#news">{{ icon('arrow') }}{{ _("Docs: what's new by version") }}</a></p>
+</article>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav with context %}
+{% block title %}{{ _("Downloads") }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin</p>
+      <h1>{{ _("Downloads") }}</h1>
+    </div>
+  </header>
+  {{ admin_nav('downloads') }}
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>{{ icon('plus') }}{{ _("Publish a new build") }}</h2>
+      <p class="muted small">{{ _("Requires a 2FA code from the last 15 minutes. Max %(mb)s MB.", mb=max_mb) }}</p>
+    </div>
+    <form method="post" action="{{ url_for('admin_downloads_upload') }}" enctype="multipart/form-data" class="grid-form upload-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>{{ _("Plugin jar") }}
+        <input type="file" name="jar" accept=".jar,application/java-archive" required>
+      </label>
+      <label class="span-2">{{ _("Changelog (optional, shown to customers)") }}
+        <input name="changelog" maxlength="2000" placeholder="{{ _('e.g. Fixed false flags on boats, new KillAura check') }}">
+      </label>
+      <button class="btn btn-primary" type="submit">{{ icon('arrow') }}{{ _("Publish") }}</button>
+    </form>
+    <p class="muted small pad">{{ _("Name and version are read from plugin.yml inside the jar. The newest build is served right away to every customer with an active license. The last 5 builds are kept.") }}</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('film') }}{{ _("Builds") }}</h2></div>
+    {% if versions %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("File") }}</th><th scope="col">{{ _("Uploaded") }}</th><th scope="col">{{ _("Size") }}</th><th scope="col">SHA-256</th></tr></thead>
+        <tbody>
+          {% for v in versions %}
+          <tr>
+            <td><b>{{ v.name }} {{ v.version }}</b>{% if loop.first %} <span class="badge badge-pro">{{ _("Live") }}</span>{% endif %}{% if v.changelog %}<br><span class="muted small">{{ v.changelog }}</span>{% endif %}</td>
+            <td class="mono small">{{ v.file }}</td>
+            <td class="small nowrap">{{ v.uploaded|date }}</td>
+            <td class="small nowrap">{{ v.size_mb }} MB</td>
+            <td class="mono small sha-cell">{{ v.sha256[:16] }}…</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted pad">{{ _("No build published yet. Customers see no download button until you upload one.") }}</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

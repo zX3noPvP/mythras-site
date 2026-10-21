@@ -1,0 +1,12 @@
+.env
+.venv/
+data/
+__pycache__/
+*.pyc
+*.tgz
+*.part
+.claude/
+# backups and downloaded jars never go in git (they contain secrets / binaries)
+nightly-*.tgz
+*.db
+*.db.gz

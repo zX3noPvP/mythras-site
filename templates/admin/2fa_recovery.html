@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _("Recovery codes") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container auth-wrap">
+  <section class="auth-card">
+    <p class="kicker">{{ icon('check') }}{{ _("Two-factor authentication enabled") }}</p>
+    <h1>{{ _("Save your recovery codes") }}</h1>
+    <p class="form-error" role="alert">{{ _("These codes are shown only once. Store them somewhere safe (password manager or printed).") }}</p>
+    <p class="muted">{{ _("If you lose your phone, each code lets you sign in one time. Then reset 2FA from the Admins page.") }}</p>
+
+    <ol class="recovery-grid" id="recovery-codes">
+      {% for c in codes %}<li><code>{{ c }}</code></li>{% endfor %}
+    </ol>
+    <div class="key-row recovery-actions">
+      <code class="key sr-only" data-key="{{ codes|join('\n') }}">{{ codes|join(' ') }}</code>
+      <button class="btn btn-outline" type="button" data-copy>{{ icon('copy') }}{{ _("Copy all codes") }}</button>
+      <a class="btn btn-primary" href="{{ url_for('admin') }}">{{ _("I saved them, continue") }} {{ icon('arrow') }}</a>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

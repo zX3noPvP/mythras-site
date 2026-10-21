@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Terms of Sale") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<article class="container legal">
+  <p class="kicker">{{ _("Legal") }}</p>
+  <h1>{{ _("Terms of Sale") }}</h1>
+  <p class="muted">{{ _("Last updated: %(date)s", date="17/10/2026") }}</p>
+
+  <h2>{{ _("1. Who sells") }}</h2>
+  <p>{% if LEGAL_CONTROLLER %}{{ _("Mythras AntiCheat is sold by %(seller)s.", seller=LEGAL_CONTROLLER) }}{% if LEGAL_VAT %} ({{ _("VAT number") }} {{ LEGAL_VAT }}){% endif %} {% endif %}{{ _("Orders are placed by opening a ticket on our Discord server: there we confirm the plan, the price and the payment method. Prices are in euro.") }}</p>
+
+  <h2>{{ _("2. What you buy") }}</h2>
+  <p>{{ _("A one-month license for Mythras AntiCheat (Base, Pro or Enterprise), with a license key linked to your Discord account. Each plan's features and server limit are shown on the pricing page at the time of purchase.") }}</p>
+  <p>{{ _("Enterprise is also sold as a lifetime license: a one-time payment and a key that does not expire.") }}</p>
+  <p>{{ _("The license does not renew by itself: at the end of the month the key expires and the plugin goes back to Free. To renew, open a new ticket before it expires and we add one more month to the same key.") }}</p>
+
+  <h2>{{ _("3. Delivery") }}</h2>
+  <p>{{ _("The key is delivered after the payment, in your dashboard on this website. You also receive the Discord role of your plan.") }}</p>
+
+  <h2>{{ _("4. Right of withdrawal") }}</h2>
+  <p>{{ _("Under EU law you can withdraw from an online purchase within 14 days. For digital content, this right ends once delivery starts, if you asked for immediate delivery and acknowledged it in the ticket before receiving the key.") }}</p>
+
+  <h2>{{ _("5. Refunds") }}</h2>
+  <p>{{ _("If the key does not work and we cannot fix the problem, contact support within 14 days of a payment and we will refund that payment. Refunded keys are revoked.") }}</p>
+
+  <h2>{{ _("6. Use of the license") }}</h2>
+  <p>{{ _("A key is for your own Minecraft servers, within the server limit of its plan. Do not resell or share keys: keys used against these terms may be revoked without refund.") }}</p>
+
+  <h2>{{ _("7. Applicable law") }}</h2>
+  <p>{{ _("These terms are governed by Italian law. If you are a consumer, you keep the protections of the mandatory law of your country of residence.") }}</p>
+
+  <p>
+    {% if LEGAL_EMAIL %}{{ _("Contact:") }} <a href="mailto:{{ LEGAL_EMAIL }}">{{ LEGAL_EMAIL }}</a>{% elif SUPPORT_DISCORD %}{{ _("Contact:") }} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Discord server") }}</a>{% endif %}
+  </p>
+</article>
+{% endblock %}

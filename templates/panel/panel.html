@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box with context %}
+{% set page_ep = 'admin_panel' if admin else 'panel' %}
+{% set feed_ep = 'admin_panel_feed' if admin else 'panel_feed_view' %}
+{% set player_ep = 'admin_panel_player' if admin else 'panel_player' %}
+{% block title %}{{ _("Panel") }}{% if admin %} · Admin{% endif %} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app panel-page">
+  <header class="app-head">
+    <div>
+      <p class="kicker">{{ "Admin" if admin else _("Your servers") }}</p>
+      <h1>{{ _("Panel") }}</h1>
+      <p class="muted small">{{ _("Alerts, punishments and replays sent by Mythras from your servers.") if not admin else _("Alerts, punishments and replays from every customer's servers.") }}</p>
+    </div>
+    <form class="panel-scope" method="get" action="{{ url_for(page_ep) }}">
+      {% if keys|length > 1 or admin %}
+      <label>{{ _("Key") }}
+        <select name="key" data-autosubmit>
+          <option value="">{{ _("All keys") }}</option>
+          {% for k in keys %}<option value="{{ k.key }}" {% if filters.key == k.key %}selected{% endif %}>{{ k.key[:9] }}… · {{ k.plan|plan_name }}{% if admin and k.owner %} · {{ names.get(k.owner) or k.owner }}{% endif %}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <input type="hidden" name="days" value="{{ filters.days }}">
+      <noscript><button class="btn btn-outline btn-sm" type="submit">{{ _("Apply") }}</button></noscript>
+    </form>
+  </header>
+  {% if admin %}{{ admin_nav('panel') }}{% endif %}
+  {{ api_error_box(api_error) }}
+
+  {# ---------- servers ---------- #}
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('terminal') }}{{ _("Servers") }}</h2><span class="muted small">{{ servers|selectattr('online')|list|length }}/{{ servers|length }} {{ _("online") }}</span></div>
+    {% if servers %}
+    <div class="server-grid">
+      {% for s in servers %}
+      <article class="server-card">
+        <div class="server-top">
+          <span class="online-dot {% if s.online %}is-on{% endif %}" aria-hidden="true"></span>
+          <h3>{{ s.name or s.server[:8] }}</h3>
+          <span class="small {% if s.online %}on-text{% else %}muted{% endif %}">{{ _("Online") if s.online else _("Offline") }}</span>
+        </div>
+        <dl class="server-meta">
+          <div><dt>{{ _("Players") }}</dt><dd>{{ s.players or 0 }}/{{ s.maxPlayers or 0 }}</dd></div>
+          {% if s.tps is not none and s.tps >= 0 %}<div><dt>TPS</dt><dd>{{ '%.1f'|format(s.tps) }}</dd></div>{% endif %}
+          <div><dt>Mythras</dt><dd class="mono">{{ s.mythras or '—' }}</dd></div>
+          <div><dt>Minecraft</dt><dd class="mono">{{ s.minecraft or '—' }}{% if s.software %} · {{ s.software }}{% endif %}</dd></div>
+          <div><dt>{{ _("Last seen") }}</dt><dd><time class="js-time" data-ms="{{ s.lastSeen }}" data-mode="ago" datetime="{{ s.lastSeen|ms_iso }}">{{ s.lastSeen|ms_date }}</time></dd></div>
+          {% if admin %}<div><dt>{{ _("Key") }}</dt><dd><a class="mono" href="{{ url_for('admin_key', key=s.key) }}">{{ s.key[:9] }}…</a>{% set o = owners.get(s.key) %}{% if o %} · {{ names.get(o) or o }}{% endif %}</dd></div>{% endif %}
+        </dl>
+      </article>
+      {% endfor %}
+    </div>
+    {% elif not api_error %}
+    <div class="empty">{{ icon('shield', 'empty-icon') }}<h3>{{ _("No servers yet: start Mythras with your key") }}</h3><p class="muted">{{ _("Servers appear here a few seconds after they start with Mythras 1.16 or newer.") }} <a href="{{ url_for('docs_page') }}#installation">{{ _("Docs") }}</a></p></div>
+    {% endif %}
+  </section>
+
+  {# ---------- overview ---------- #}
+  {% if stats %}
+  <section class="panel">
+    <div class="panel-head">
+      <h2>{{ icon('activity') }}{{ _("Overview") }}</h2>
+      <nav class="seg" aria-label="{{ _('Period') }}">
+        {% for d in (1, 7, 30) %}<a href="{{ url_for(page_ep, key=filters.key or None, days=d) }}" {% if filters.days == d %}aria-current="page"{% endif %}>{{ _("1 day") if d == 1 else _("%(n)s days", n=d) }}</a>{% endfor %}
+      </nav>
+    </div>
+    <div class="panel-body">
+      <div class="stat-row stat-row-3">
+        <div class="stat"><span>{{ _("Alerts") }}</span><b>{{ stats.alerts or 0 }}</b></div>
+        <div class="stat"><span>{{ _("Punishments") }}</span><b>{{ stats.punishments or 0 }}</b></div>
+        <div class="stat"><span>{{ _("Replays") }}</span><b>{{ stats.replays or 0 }}</b></div>
+      </div>
+
+      {% if chart.empty %}
+      <p class="empty-line muted">{{ _("No alerts in this period") }}</p>
+      {% else %}
+      <figure class="chart">
+        <figcaption>
+          <span class="chart-title">{{ _("Alerts and punishments per day") }}</span>
+          <span class="legend"><span class="sw sw-alert"></span>{{ _("Alerts") }}<span class="sw sw-punish"></span>{{ _("Punishments") }}</span>
+        </figcaption>
+        <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="{{ _('Alerts and punishments per day') }}" class="chart-svg">
+          {% for g in chart.grid %}
+          <line x1="{{ chart.left }}" x2="{{ chart.width - 8 }}" y1="{{ g.y }}" y2="{{ g.y }}" class="grid{% if loop.first %} baseline{% endif %}"/>
+          <text x="{{ chart.left - 6 }}" y="{{ g.y + 4 }}" class="tick" text-anchor="end">{{ g.value }}</text>
+          {% endfor %}
+          {% for b in chart.bars %}
+          <g class="bar" tabindex="0">
+            <title>{{ b.day|ms_day }}: {{ _("%(n)s alerts", n=b.alerts) }}, {{ _("%(n)s punishments", n=b.punish) }}</title>
+            <rect class="hit" x="{{ b.x - 4 }}" y="0" width="{{ b.w + 8 }}" height="{{ chart.base }}"/>
+            {% if b.alerts %}<rect class="seg-alert" x="{{ b.x }}" y="{{ b.ya }}" width="{{ b.w }}" height="{{ b.ha }}" rx="2"/>{% endif %}
+            {% if b.punish %}<rect class="seg-punish" x="{{ b.x }}" y="{{ b.yp }}" width="{{ b.w }}" height="{{ b.hp }}" rx="2"/>{% endif %}
+            {% if b.label %}<text x="{{ b.lx }}" y="{{ chart.base + 18 }}" class="tick" text-anchor="middle">{{ b.day|ms_day_short }}</text>{% endif %}
+          </g>
+          {% endfor %}
+        </svg>
+        <details class="chart-table">
+          <summary>{{ _("Show as table") }}</summary>
+          <div class="table-wrap"><table class="table">
+            <thead><tr><th scope="col">{{ _("Day") }}</th><th scope="col">{{ _("Alerts") }}</th><th scope="col">{{ _("Punishments") }}</th></tr></thead>
+            <tbody>{% for b in chart.bars %}<tr><td>{{ b.day|ms_day }}</td><td>{{ b.alerts }}</td><td>{{ b.punish }}</td></tr>{% endfor %}</tbody>
+          </table></div>
+        </details>
+      </figure>
+      {% endif %}
+
+      <div class="panel-cols">
+        <div>
+          <h3 class="sub-title">{{ _("Top checks") }}</h3>
+          {% set checks = (stats.checks or [])[:10] %}
+          {% if checks %}
+          {% set top = checks|map(attribute='count')|max %}
+          <ul class="bar-list">
+            {% for c in checks %}
+            <li>
+              <a href="{{ url_for(page_ep, key=filters.key or None, days=filters.days, check=c.check, type=c.type) }}#feed-section" class="mono">{{ c.check }}</a>
+              <span class="small muted">{{ _("Punishment") if c.type == 'punish' else _("Alert") }} · {{ _("1 player") if c.players == 1 else _("%(n)s players", n=c.players) }}</span>
+              <span class="bar-track"><span class="bar-fill {% if c.type == 'punish' %}is-punish{% endif %}" style="width: {{ (100 * c.count / top)|round(1) }}%"></span></span>
+              <b class="mono">{{ c.count }}</b>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}<p class="muted small">{{ _("No alerts in this period") }}</p>{% endif %}
+        </div>
+        <div>
+          <h3 class="sub-title">{{ _("Top players") }}</h3>
+          {% if stats.topPlayers %}
+          <ol class="player-list">
+            {% for pl in stats.topPlayers[:10] %}
+            <li>
+              <a href="{{ url_for(player_ep, name=pl.player, key=filters.key or None, days=filters.days) }}">{{ pl.player }}</a>
+              <span class="small muted"><time class="js-time" data-ms="{{ pl.last }}" data-mode="ago" datetime="{{ pl.last|ms_iso }}">{{ pl.last|ms_date }}</time></span>
+              <b class="mono">{{ pl.alerts }}</b>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}<p class="muted small">{{ _("No alerts in this period") }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ---------- live feed ---------- #}
+  <section class="panel" id="feed-section">
+    <div class="panel-head">
+      <h2>{{ icon('activity') }}{{ _("Live feed") }}</h2>
+      <span class="live-dot small muted" id="feed-status"><span class="online-dot is-on" aria-hidden="true"></span>{{ _("Updates every 12 seconds") }}</span>
+    </div>
+    <form class="filters" method="get" action="{{ url_for(page_ep) }}#feed-section" role="search">
+      <input type="hidden" name="key" value="{{ filters.key }}">
+      <input type="hidden" name="days" value="{{ filters.days }}">
+      <label>{{ _("Type") }}
+        <select name="type">
+          <option value="">{{ _("All types") }}</option>
+          <option value="alert" {% if filters.type == 'alert' %}selected{% endif %}>{{ _("Alerts") }}</option>
+          <option value="punish" {% if filters.type == 'punish' %}selected{% endif %}>{{ _("Punishments") }}</option>
+          <option value="replay" {% if filters.type == 'replay' %}selected{% endif %}>{{ _("Replays") }}</option>
+        </select>
+      </label>
+      {% if servers|length > 1 %}
+      <label>{{ _("Server") }}
+        <select name="server">
+          <option value="">{{ _("All servers") }}</option>
+          {% for s in servers %}<option value="{{ s.server }}" {% if filters.server == s.server %}selected{% endif %}>{{ s.name or s.server[:8] }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <label>{{ _("Check") }}
+        <input name="check" value="{{ filters.check }}" maxlength="48" placeholder="KillAura">
+      </label>
+      <label class="grow">{{ _("Player") }}
+        <input type="search" name="player" value="{{ filters.player }}" maxlength="32" placeholder="{{ _('Search a player') }}">
+      </label>
+      <button class="btn btn-primary" type="submit">{{ _("Apply") }}</button>
+      {% if filters.type or filters.server or filters.check or filters.player %}<a class="btn btn-ghost" href="{{ url_for(page_ep, key=filters.key or None, days=filters.days) }}#feed-section">{{ _("Clear") }}</a>{% endif %}
+    </form>
+    <ul class="feed" id="feed"
+        data-feed-url="{{ url_for(feed_ep, key=filters.key or None, type=filters.type or None, server=filters.server or None, check=filters.check or None, player=filters.player or None) }}"
+        data-next="{{ next }}">
+      {% with events=events, admin=admin, server_names=server_names, owners=owners, names=names %}{% include "panel/_rows.html" %}{% endwith %}
+    </ul>
+    {% if not events and not api_error %}<p class="empty-line muted" id="feed-empty">{{ _("No alerts in this period") }}</p>{% endif %}
+    <div class="feed-more"><button class="btn btn-outline" type="button" id="feed-more" {% if not next %}hidden{% endif %}>{{ _("Load more") }}</button></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

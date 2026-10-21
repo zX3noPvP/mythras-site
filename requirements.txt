@@ -1,0 +1,6 @@
+flask>=3.0
+python-dotenv>=1.0
+cryptography>=42.0
+bcrypt>=4.1
+qrcode>=7.4
+gunicorn>=22.0; sys_platform != "win32"

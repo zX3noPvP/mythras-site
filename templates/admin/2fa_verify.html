@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _("Verify") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container auth-wrap">
+  <section class="auth-card auth-card-sm">
+    <p class="kicker">{{ icon('shield') }}{{ _("Two-factor authentication") }}</p>
+    <h1>{{ _("Confirm it's you") if fresh else _("Enter your code") }}</h1>
+    <p class="muted">
+      {% if fresh %}{{ _("This action needs a code from the last 15 minutes.") }}{% else %}{{ _("Open your authenticator app and enter the 6-digit code for Mythras AntiCheat.") }}{% endif %}
+    </p>
+
+    {% if locked_minutes %}
+      <p class="form-error" role="alert">{{ _("Too many wrong codes. Try again in %(n)s minutes.", n=locked_minutes) }}</p>
+    {% elif error %}
+      <p class="form-error" role="alert">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('admin_2fa_verify') }}" class="code-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      {% if fresh %}<input type="hidden" name="fresh" value="1">{% endif %}
+      <label>{{ _("Authentication code") }}
+        <input class="code-input" name="code" required autofocus autocomplete="one-time-code"
+               maxlength="12" placeholder="123456" {% if locked_minutes %}disabled{% endif %}>
+      </label>
+      <button class="btn btn-primary btn-lg" type="submit" {% if locked_minutes %}disabled{% endif %}>{{ _("Verify") }}</button>
+    </form>
+    <p class="muted small">{{ _("Lost your phone? Enter one of your recovery codes (like abcde-fghij) in the same field.") }}</p>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box, events_table with context %}
+{% block title %}Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin</p>
+      <h1>{{ _("Overview") }}</h1>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('admin_new_key') }}">{{ icon('plus') }}{{ _("Create license") }}</a>
+  </header>
+  {{ admin_nav('overview') }}
+  {{ api_error_box(api_error) }}
+
+  {% if stats %}
+  <section class="stat-row" aria-label="{{ _('License totals') }}">
+    <div class="stat"><span>{{ _("Total keys") }}</span><b>{{ stats.total }}</b></div>
+    <div class="stat"><span>{{ _("Active") }}</span><b class="red">{{ stats.active }}</b></div>
+    <div class="stat"><span>{{ _("Servers online") }}</span><b>{{ stats.servers }}</b></div>
+    <div class="stat"><span>{{ _("Revoked") }}</span><b>{{ stats.revoked }}</b></div>
+    <div class="stat"><span>{{ _("Expired") }}</span><b>{{ stats.expired }}</b></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('shield') }}{{ _("Active keys per plan") }}</h2></div>
+    <div class="plan-bars">
+      {% set top = [stats.plans.values()|max, 1]|max %}
+      {% for plan, count in stats.plans.items() %}
+      <div class="plan-bar">
+        <span class="plan-bar-label"><span class="badge badge-{{ plan }}">{{ plan|plan_name }}</span></span>
+        <span class="plan-bar-track"><span class="plan-bar-fill {% if plan == 'pro' %}is-red{% endif %}" style="width: {{ (count / top * 100)|round(1) }}%"></span></span>
+        <b class="mono">{{ count }}</b>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>{{ icon('activity') }}{{ _("Latest events") }}</h2>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_log') }}">{{ _("Full log") }} {{ icon('arrow') }}</a>
+    </div>
+    {{ events_table(events) }}
+  </section>
+</div>
+{% endblock %}

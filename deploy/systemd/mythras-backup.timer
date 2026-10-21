@@ -1,0 +1,10 @@
+[Unit]
+Description=Mythras backup every night at 04:00
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

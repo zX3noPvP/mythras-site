@@ -1,0 +1,62 @@
+{% from "_icons.html" import icon %}
+
+{% macro admin_nav(active) %}
+<nav class="subnav" aria-label="{{ _('Admin sections') }}">
+  <a href="{{ url_for('admin') }}" {% if active == 'overview' %}aria-current="page"{% endif %}>{{ _("Overview") }}</a>
+  <a href="{{ url_for('admin_keys') }}" {% if active == 'keys' %}aria-current="page"{% endif %}>{{ _("Keys") }}</a>
+  <a href="{{ url_for('admin_new_key') }}" {% if active == 'new' %}aria-current="page"{% endif %}>{{ _("Create license") }}</a>
+  <a href="{{ url_for('admin_customers') }}" {% if active == 'customers' %}aria-current="page"{% endif %}>{{ _("Customers") }}</a>
+  <a href="{{ url_for('admin_panel') }}" {% if active == 'panel' %}aria-current="page"{% endif %}>{{ _("Panel") }}</a>
+  <a href="{{ url_for('admin_ai') }}" {% if active == 'ai' %}aria-current="page"{% endif %}>Cloud AI</a>
+  <a href="{{ url_for('admin_log') }}" {% if active == 'log' %}aria-current="page"{% endif %}>{{ _("Log") }}</a>
+  <a href="{{ url_for('admin_downloads') }}" {% if active == 'downloads' %}aria-current="page"{% endif %}>{{ _("Downloads") }}</a>
+  <a href="{{ url_for('admin_admins') }}" {% if active == 'admins' %}aria-current="page"{% endif %}>{{ _("Admins") }}</a>
+</nav>
+{% endmacro %}
+
+{% macro api_error_box(message) %}
+{% if message %}
+<div class="api-error" role="alert">{{ icon('x') }}<div><b>{{ _("License server") }}</b><p>{{ message }}</p></div></div>
+{% endif %}
+{% endmacro %}
+
+{% macro status_badge(status) %}
+<span class="status-dot {% if status != 'active' %}is-bad{% endif %}">{{ _((status or 'unknown')|capitalize) }}</span>
+{% endmacro %}
+
+{% macro servers_cell(k) %}
+<span class="mono">{{ k.activeServers or 0 }}/{{ '∞' if k.maxServers == 0 else k.maxServers }}</span>
+{% endmacro %}
+
+{% macro events_table(events, show_key=True) %}
+{% if events %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">{{ _("Time") }}</th>
+        <th scope="col">{{ _("Event") }}</th>
+        {% if show_key %}<th scope="col">{{ _("Key") }}</th>{% endif %}
+        <th scope="col">{{ _("Actor") }}</th>
+        <th scope="col">{{ _("Detail") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in events %}
+      <tr>
+        <td class="nowrap muted small">{{ e.time|ms_date }}</td>
+        <td><span class="ev ev-{{ e.action }}">{{ e.label or e.action }}</span></td>
+        {% if show_key %}
+        <td>{% if e.key %}<a class="mono small" href="{{ url_for('admin_key', key=e.key) }}">{{ e.key }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+        {% endif %}
+        <td class="small">{{ e.actor or '—' }}</td>
+        <td class="small muted">{{ e.detail or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted pad">{{ _("No events yet.") }}</p>
+{% endif %}
+{% endmacro %}

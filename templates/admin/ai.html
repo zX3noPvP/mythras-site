@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box with context %}
+{% block title %}Cloud AI · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin</p>
+      <h1>Mythras Cloud AI</h1>
+      <p class="muted small">{{ _("The global model trained every hour on the combat data of all Enterprise servers.") }}</p>
+    </div>
+    {% if ai %}<span class="status-dot {% if not ai.enabled %}is-off{% endif %}">{{ _("Enabled") if ai.enabled else _("Disabled") }}</span>{% endif %}
+  </header>
+  {{ admin_nav('ai') }}
+  {{ api_error_box(api_error) }}
+
+  {% if ai %}
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('cpu') }}{{ _("Published models") }}</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">{{ _("Model") }}</th><th scope="col">{{ _("Accuracy") }}</th><th scope="col">{{ _("Behaviours") }}</th><th scope="col">{{ _("Labels") }}</th><th scope="col">{{ _("Servers") }}</th><th scope="col">{{ _("Created") }}</th></tr></thead>
+        <tbody>
+          {% for m in ai.models or [] %}
+          <tr>
+            <td>{{ _("Neural network") if m.kind == 'network' else _("Logistic") }}</td>
+            <td class="mono"><b>{{ '%.1f'|format((m.accuracy or 0) * 100) }}%</b></td>
+            <td class="mono">{{ m.features }}{% if m.features == 12 %} <span class="small muted">({{ _("plugins before 1.15") }})</span>{% endif %}</td>
+            <td class="mono small">{{ m.samples }} · {{ _("%(n)s cheat", n=m.cheatLabels) }} / {{ _("%(n)s legit", n=m.legitLabels) }}</td>
+            <td class="mono">{{ m.servers }}</td>
+            <td class="small"><time class="js-time" data-ms="{{ m.created }}" data-mode="abs" datetime="{{ m.created|ms_iso }}">{{ m.created|ms_date }}</time></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="muted">{{ _("No model published yet.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small panel-note">{{ _("Accuracy is balanced accuracy on test windows: 50% is a coin flip.") }}</p>
+  </section>
+
+  {% if chart %}
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('activity') }}{{ _("Accuracy over time") }}</h2><span class="muted small">{{ _("One point per training run") }}</span></div>
+    <div class="panel-body">
+      <figure class="chart">
+        <figcaption>
+          <span class="chart-title">{{ _("Balanced accuracy") }}</span>
+          <span class="legend"><span class="sw sw-dot"></span>{{ _("Published") }}<span class="sw sw-hollow"></span>{{ _("Not published") }}</span>
+        </figcaption>
+        <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="{{ _('Balanced accuracy') }}" class="chart-svg">
+          {% for g in chart.grid %}
+          <line x1="{{ chart.left }}" x2="{{ chart.width - 12 }}" y1="{{ g.y }}" y2="{{ g.y }}" class="grid{% if loop.first %} baseline{% endif %}"/>
+          <text x="{{ chart.left - 6 }}" y="{{ g.y + 4 }}" class="tick" text-anchor="end">{{ (g.value * 100)|int }}%</text>
+          {% endfor %}
+          <polyline points="{{ chart.path }}" class="acc-line"/>
+          {% for pt in chart.points %}
+          <g class="pt" tabindex="0">
+            <title>{{ pt.run.time|ms_date }}: {{ '%.1f'|format((pt.run.accuracy or 0) * 100) }}% · {{ _("Published") if pt.run.published else _("Not published") }}{% if pt.run.message %} · {{ pt.run.message }}{% endif %}</title>
+            <circle class="hit" cx="{{ pt.x }}" cy="{{ pt.y }}" r="10"/>
+            <circle class="{{ 'dot' if pt.run.published else 'dot-hollow' }}" cx="{{ pt.x }}" cy="{{ pt.y }}" r="4"/>
+          </g>
+          {% endfor %}
+          <text x="{{ chart.left }}" y="{{ chart.base + 18 }}" class="tick">{{ chart.points[0].run.time|ms_day_short }}</text>
+          <text x="{{ chart.width - 12 }}" y="{{ chart.base + 18 }}" class="tick" text-anchor="end">{{ chart.points[-1].run.time|ms_day_short }}</text>
+        </svg>
+        <details class="chart-table">
+          <summary>{{ _("Show as table") }}</summary>
+          <div class="table-wrap"><table class="table">
+            <thead><tr><th scope="col">{{ _("Time") }}</th><th scope="col">{{ _("Accuracy") }}</th><th scope="col">{{ _("Labels") }}</th><th scope="col">{{ _("Keys") }}</th><th scope="col">{{ _("Result") }}</th></tr></thead>
+            <tbody>
+              {% for run in ai.history or [] %}
+              <tr>
+                <td class="small"><time class="js-time" data-ms="{{ run.time }}" data-mode="abs" datetime="{{ run.time|ms_iso }}">{{ run.time|ms_date }}</time></td>
+                <td class="mono">{{ '%.1f'|format((run.accuracy or 0) * 100) }}%</td>
+                <td class="mono small">{{ run.labels }} ({{ run.cheat }}/{{ run.legit }})</td>
+                <td class="mono">{{ run.keys }}</td>
+                <td class="small">{% if run.published %}<span class="status-dot">{{ _("Published") }}</span>{% else %}<span class="status-dot is-off">{{ _("Not published") }}</span>{% endif %}{% if run.message and run.message != 'published' %}<br><span class="muted">{{ run.message }}</span>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table></div>
+        </details>
+      </figure>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('key') }}{{ _("Data per key") }}</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr>
+          <th scope="col">{{ _("Key") }}</th><th scope="col">{{ _("Owner") }}</th><th scope="col">{{ _("Windows") }}</th><th scope="col">{{ _("Labels") }}</th>
+          <th scope="col">{{ _("Last upload") }}</th><th scope="col">{{ _("False positives") }}</th><th scope="col">{{ _("Missed cheaters") }}</th><th scope="col"><span class="sr-only">{{ _("Status") }}</span></th>
+        </tr></thead>
+        <tbody>
+          {% for k in ai["keys"] or [] %}
+          <tr>
+            <td><a class="mono key-link" href="{{ url_for('admin_key', key=k.key) }}">{{ k.key }}</a></td>
+            <td class="small">{% set o = owners.get(k.key) %}{% if o %}{{ names.get(o) or o }}{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="mono">{{ k.windows }}</td>
+            <td class="mono small">{{ k.labelled }} ({{ k.cheat }}/{{ k.legit }})</td>
+            <td class="small"><time class="js-time" data-ms="{{ k.lastUpload }}" data-mode="ago" datetime="{{ k.lastUpload|ms_iso }}">{{ k.lastUpload|ms_date }}</time></td>
+            <td class="mono {% if (k.falsePositiveRate or 0) > 0.05 %}red{% endif %}">{{ '%.1f'|format((k.falsePositiveRate or 0) * 100) }}% <span class="small muted">({{ k.falsePositives }})</span></td>
+            <td class="mono">{{ '%.1f'|format((k.missedRate or 0) * 100) }}% <span class="small muted">({{ k.missedCheaters }})</span></td>
+            <td>{% if k.excluded %}<span class="badge badge-pro" title="{{ _('Its labels contradict the other servers and were left out (bad or poisoned data).') }}">{{ _("Left out") }}</span>{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="muted">{{ _("No data uploaded yet.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small panel-note">{{ _("False positives: legit windows the current model would flag (score 92% or more). Missed cheaters: cheat windows it scores below 50%.") }}</p>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

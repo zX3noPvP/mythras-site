@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav with context %}
+{% block title %}{{ _("Create license") }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin</p>
+      <h1>{{ _("Create license") }}</h1>
+    </div>
+  </header>
+  {{ admin_nav('new') }}
+
+  {% if created %}
+  <section class="created" aria-live="polite">
+    <p class="kicker">{{ icon('check') }}{{ _("License created") }}</p>
+    <div class="key-row created-key">
+      <code class="key">{{ created.key }}</code>
+      <button class="btn btn-primary" type="button" data-copy>{{ icon('copy') }}{{ _("Copy") }}</button>
+    </div>
+    <dl class="license-meta">
+      <div><dt>{{ _("Plan") }}</dt><dd>{{ created.plan|plan_name }}</dd></div>
+      <div><dt>{{ _("Expires") }}</dt><dd>{{ created.expires|ms_date }}</dd></div>
+      <div><dt>{{ _("Servers") }}</dt><dd>{{ _("Unlimited") if created.maxServers == 0 else created.maxServers }}</dd></div>
+    </dl>
+    <p class="muted small">
+      {% if created.owner %}{{ _("Linked to Discord ID %(id)s, who gets the plan role.", id=created.owner) }}{% else %}{{ _("No owner yet: the customer can link it from their dashboard.") }}{% endif %}
+      <a href="{{ url_for('admin_key', key=created.key) }}">{{ _("Open key details") }}</a>
+    </p>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>{{ icon('key') }}{{ _("New license") }}</h2>
+      <p class="muted small">{{ _("Requires a 2FA code from the last 15 minutes.") }}</p>
+    </div>
+    <form method="post" action="{{ url_for('admin_create_key') }}" class="grid-form grid-form-wide">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>{{ _("Plan") }}
+        <select name="plan" required>
+          {% for p in plans.plans %}
+          <option value="{{ p.plan }}" {% if form.plan == p.plan %}selected{% endif %}>{{ p.plan|plan_name }}{% if p.maxServers is defined %} · {{ _("unlimited servers") if p.maxServers == 0 else (_("1 server") if p.maxServers == 1 else _("%(n)s servers", n=p.maxServers)) }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>{{ _("Days") }}
+        <input name="days" value="{{ form.days if 'days' in form else '30' }}" inputmode="numeric" pattern="[0-9]*" placeholder="{{ _('Empty = 1 month, 0 = never expires') }}">
+      </label>
+      <label>{{ _("Servers") }}
+        <input name="servers" value="{{ form.servers or '' }}" inputmode="numeric" pattern="[0-9]*" placeholder="{{ _('Empty = plan default, 0 = unlimited') }}">
+      </label>
+      <label>{{ _("Discord owner") }}
+        <input name="owner" value="{{ form.owner or request.args.get('owner', '') }}" inputmode="numeric" pattern="[0-9]{17,20}" placeholder="{{ _('Optional Discord ID') }}" list="customer-ids" autocomplete="off">
+        <datalist id="customer-ids">{% for c in customers or [] %}<option value="{{ c.discord_id }}">{{ c.username }}</option>{% endfor %}</datalist>
+      </label>
+      <label class="span-2">{{ _("Note") }}
+        <input name="note" value="{{ form.note or '' }}" maxlength="500" placeholder="{{ _('e.g. Order #42, customer name') }}">
+      </label>
+      <button class="btn btn-primary" type="submit">{{ icon('key') }}{{ _("Create license") }}</button>
+    </form>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

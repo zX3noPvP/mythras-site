@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import api_error_box, status_badge, servers_cell with context %}
+{% block title %}{{ _("My licenses") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div class="user-card">
+      {% if current_user.avatar %}
+        <img src="{{ current_user.avatar }}" alt="" width="56" height="56">
+      {% else %}
+        <span class="avatar-fallback">{{ current_user.username[:1]|upper }}</span>
+      {% endif %}
+      <div>
+        <p class="muted small">{{ _("Welcome back") }}</p>
+        <h1>{{ current_user.username }}</h1>
+        <p class="muted small">{{ _("Member since %(date)s", date=current_user.created_at|date) }}</p>
+      </div>
+    </div>
+    <div class="head-actions">
+      <a class="btn btn-primary" href="{{ url_for('panel') }}">{{ icon('activity') }}{{ _("Open panel") }}</a>
+      {% if is_admin %}<a class="btn btn-outline" href="{{ url_for('admin') }}">{{ icon('settings') }}{{ _("Admin dashboard") }}</a>{% endif %}
+    </div>
+  </header>
+
+  {{ api_error_box(api_error) }}
+
+
+  <section class="stat-row" aria-label="{{ _('Your licenses') }}">
+    <div class="stat"><span>{{ _("Linked keys") }}</span><b>{{ keys|length }}</b></div>
+    <div class="stat"><span>{{ _("Active keys") }}</span><b class="{% if active_count %}red{% endif %}">{{ active_count }}</b></div>
+    <div class="stat"><span>{{ _("Servers online") }}</span><b>{{ servers_online }}</b></div>
+  </section>
+
+  {% if download %}
+  <section class="panel download-panel" id="download">
+    <div class="download-row">
+      <div>
+        <p class="kicker">{{ _("Download") }}</p>
+        <h2 class="download-title">{{ download.name }} <span class="red">{{ download.version }}</span></h2>
+        <p class="muted small">{{ _("Updated %(date)s", date=download.uploaded|date) }} · {{ download.size_mb }} MB</p>
+      </div>
+      <a class="btn btn-primary btn-lg" href="{{ url_for('download_plugin') }}">{{ icon('arrow') }}{{ _("Download the plugin") }}</a>
+    </div>
+    {% if download.changelog %}<p class="changelog">{{ download.changelog }}</p>{% endif %}
+    <p class="muted small sha">SHA-256 <span class="mono">{{ download.sha256 }}</span></p>
+  </section>
+  {% elif download_exists %}
+  <section class="panel download-panel locked">
+    <div class="download-row">
+      <div>
+        <p class="kicker">{{ _("Download") }}</p>
+        <p class="muted">{{ _("The download unlocks as soon as you have an active license: buy a plan or link a key below.") }}</p>
+        {% if FREE_LINKS %}<p class="free-links">{{ _("Free version on:") }} {% for l in FREE_LINKS %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+      </div>
+      <a class="btn btn-outline" href="#plans">{{ _("Get a plan") }}</a>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel" id="link">
+    <div class="panel-head">
+      <h2>{{ icon('key') }}{{ _("Link a key") }}</h2>
+      <p class="muted small">{{ _("Bought a key? Link it to your Discord account to manage it here and get your plan role.") }}</p>
+    </div>
+    <form method="post" action="{{ url_for('claim_key') }}" class="claim-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label class="grow">{{ _("License key") }}
+        <input name="key" required autocomplete="off" spellcheck="false" placeholder="MYTH-XXXX-XXXX-XXXX-XXXX" maxlength="64">
+      </label>
+      <button class="btn btn-primary" type="submit">{{ _("Link key") }}</button>
+    </form>
+  </section>
+
+  <h2 class="list-title">{{ _("My licenses") }}</h2>
+  {% for k in keys %}
+  <article class="panel license">
+    <div class="license-head">
+      <div class="key-row">
+        <code class="key" data-key="{{ k.key }}" data-masked="true">{{ k.key[:5] }}••••-••••-••••-{{ k.key[-4:] }}</code>
+        <button class="icon-btn" type="button" data-reveal aria-label="{{ _('Show key') }}">{{ icon('eye') }}</button>
+        <button class="icon-btn" type="button" data-copy aria-label="{{ _('Copy key') }}">{{ icon('copy') }}</button>
+      </div>
+      <div class="head-badges">
+        <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>
+        {{ status_badge(k.status) }}
+      </div>
+    </div>
+
+    {% if k.status == 'revoked' %}
+    <div class="expiry is-expired">
+      <div><span class="expiry-label">{{ _("Status") }}</span><b class="expiry-date">{{ _("Revoked") }}</b></div>
+      <p class="expiry-note">{{ _("This key no longer works. Contact support if you think this is a mistake.") }}</p>
+    </div>
+    {% elif not k.expires %}
+    <div class="expiry">
+      <div><span class="expiry-label">{{ _("Expires") }}</span><b class="expiry-date">{{ _("Never") }}</b></div>
+    </div>
+    {% elif k.status == 'expired' or k.days_left == 0 %}
+    <div class="expiry is-expired">
+      <div><span class="expiry-label">{{ _("Expired on") }}</span><b class="expiry-date">{{ k.expires|ms_date }}</b></div>
+      <p class="expiry-note">{{ _("The plugin runs in Free mode. Renew your plan to get your checks back.") }} <a href="#plans">{{ _("See plans") }}</a></p>
+    </div>
+    {% else %}
+    <div class="expiry {% if k.days_left <= 3 %}is-soon{% endif %}">
+      <div><span class="expiry-label">{{ _("Expires on") }}</span><b class="expiry-date">{{ k.expires|ms_date }}</b></div>
+      <span class="expiry-left">{{ _("1 day left") if k.days_left == 1 else _("%(n)s days left", n=k.days_left) }}</span>
+      <p class="expiry-note">
+        {% if k.days_left <= 3 %}{{ _("Expires soon. Renew it with a ticket on our Discord server to keep your checks.") }} <a href="#plans">{{ _("See plans") }}</a>{% endif %}
+      </p>
+    </div>
+    {% endif %}
+
+    <dl class="license-meta">
+      <div><dt>{{ _("Plan") }}</dt><dd>{{ k.plan|plan_name }}</dd></div>
+      <div><dt>{{ _("Servers active") }}</dt><dd>{{ servers_cell(k) }}</dd></div>
+      <div><dt>{{ _("Created") }}</dt><dd>{{ k.created|ms_date('—') }}</dd></div>
+    </dl>
+
+    {% if k.servers %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">{{ _("Server") }}</th><th scope="col">{{ _("Last seen") }}</th><th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("State") }}</th></tr></thead>
+        <tbody>
+          {% for s in k.servers %}
+          <tr>
+            <td class="mono small">{{ s.server }}</td>
+            <td class="nowrap small" title="{{ s.lastSeen|ms_date('—') }}">{{ s.lastSeen|ago }}</td>
+            <td class="mono small">{{ s.version or '—' }}</td>
+            <td>{% if s.active %}<span class="status-dot">{{ _("Online") }}</span>{% else %}<span class="status-dot is-off">{{ _("Offline") }}</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted pad small">{{ _("No server has started with this key yet.") }}</p>
+    {% endif %}
+
+    <div class="license-foot">
+      <p class="muted small">
+        {% if reset_hours %}{{ _("Moved to a new machine? Reset frees all servers of this key, once every %(hours)s hours.", hours=reset_hours) }}{% else %}{{ _("Moved to a new machine? Reset frees all servers of this key.") }}{% endif %}
+      </p>
+      <form method="post" action="{{ url_for('reset_my_key', key=k.key) }}" data-confirm="{{ _('Reset all servers of this key? Running servers will need to start again.') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% if k.reset_wait_hours %}
+          <button class="btn btn-outline" type="submit" disabled aria-describedby="wait-{{ loop.index }}">{{ _("Reset servers") }}</button>
+          <span class="wait" id="wait-{{ loop.index }}">{{ _("Available in %(hours)sh", hours=k.reset_wait_hours) }}</span>
+        {% else %}
+          <button class="btn btn-outline" type="submit">{{ _("Reset servers") }}</button>
+        {% endif %}
+      </form>
+    </div>
+  </article>
+  {% else %}
+    {% if not api_error %}
+    <div class="panel empty">
+      {{ icon('shield', 'empty-icon') }}
+      <h3>{{ _("No licenses linked yet") }}</h3>
+      <p class="muted">{{ _("Using Free? You don't need a key, just install the plugin. For Base, Pro or Enterprise, link the key you bought above or pick a plan below.") }}</p>
+      {% if FREE_LINKS %}<p class="free-links">{{ _("Free version on:") }} {% for l in FREE_LINKS %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  <section class="panel" id="plans">
+    <div class="panel-head">
+      <h2>{{ icon('shield') }}{{ _("Get a plan") }}</h2>
+      <p class="muted small">{{ _("Purchases happen on our Discord server: open a ticket, we tell you how to pay, and your key appears here right after.") }}</p>
+    </div>
+    <div class="tier-grid tier-grid-3">
+      {% for key in ('base', 'pro', 'enterprise') %}
+      {% set tier = TIERS[key] %}
+      <article class="tier-card {% if key == 'pro' %}is-owned{% endif %}">
+        <div class="tier-card-top">
+          <span class="badge badge-{{ key }}">{{ tier.name }}</span>
+          <b>{{ tier.price }}<small class="muted"> {{ _(tier.period) }}</small></b>
+        </div>
+        {% if tier.lifetime_price %}<p class="lifetime-note">{{ _("or %(price)s lifetime, one-time payment", price=tier.lifetime_price) }}</p>{% endif %}
+        <p class="muted small">{{ _(tier.description) }}</p>
+        {% if SUPPORT_DISCORD %}
+          <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
+        {% else %}
+          <p class="muted small">{{ _("To buy %(name)s, contact support.", name=tier.name) }}</p>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% if SUPPORT_DISCORD %}
+    <ol class="steps steps-compact buy-steps">
+      <li><span class="step-n">1</span><div><h3>{{ _("Join our Discord") }}</h3><p>{{ _("Use the button above to open our server.") }}</p></div></li>
+      <li><span class="step-n">2</span><div><h3>{{ _("Open a ticket") }}</h3><p>{{ _("Tell us the plan you want and your Discord name.") }}</p></div></li>
+      <li><span class="step-n">3</span><div><h3>{{ _("Get your key") }}</h3><p>{{ _("After the payment your key is linked to your account and shows up on this page.") }}</p></div></li>
+    </ol>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>{{ icon('terminal') }}{{ _("Install") }}</h2>
+      <a class="btn btn-outline btn-sm" href="{{ url_for('docs_page') }}">{{ _("Docs: full customer guide") }}</a>
+    </div>
+    <ol class="steps steps-compact">
+      <li><span class="step-n">1</span><div><h3>{{ _("Download the plugin") }}</h3><p>{{ _("Drop the jar into your server's plugins folder.") }}</p></div></li>
+      <li><span class="step-n">2</span><div><h3>{{ _("Paste your key") }}</h3><p>{{ _("Copy your key from above into the plugin config. On Free, skip this step.") }}</p></div></li>
+      <li><span class="step-n">3</span><div><h3>{{ _("Restart the server") }}</h3><p>{{ _("The server checks in and appears in the list above.") }}</p></div></li>
+    </ol>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

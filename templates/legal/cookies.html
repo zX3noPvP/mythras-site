@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Cookie Policy") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<article class="container legal">
+  <p class="kicker">{{ _("Legal") }}</p>
+  <h1>{{ _("Cookie Policy") }}</h1>
+  <p class="muted">{{ _("Last updated: %(date)s", date="14/10/2026") }}</p>
+
+  <p>{{ _("Cookies are small files that a website stores in your browser. We only use cookies that are strictly necessary for the site to work, so under EU rules (ePrivacy Directive, art. 5(3)) they do not need your consent.") }}</p>
+  <p><b>{{ _("We do not use analytics, advertising or tracking cookies.") }}</b></p>
+
+  <h2>{{ _("Cookies we use") }}</h2>
+  <div class="table-wrap">
+    <table class="table legal-table">
+      <thead>
+        <tr><th scope="col">{{ _("Name") }}</th><th scope="col">{{ _("Provider") }}</th><th scope="col">{{ _("Purpose") }}</th><th scope="col">{{ _("Duration") }}</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono" data-label="{{ _("Name") }}">session</td><td data-label="{{ _("Provider") }}">mythras.eu</td><td data-label="{{ _("Purpose") }}">{{ _("Keeps you signed in, protects forms from forgery (CSRF) and, for administrators, remembers the two-factor check.") }}</td><td data-label="{{ _("Duration") }}">{{ _("Until you close the browser") }}</td></tr>
+        <tr><td class="mono" data-label="{{ _("Name") }}">lang</td><td data-label="{{ _("Provider") }}">mythras.eu</td><td data-label="{{ _("Purpose") }}">{{ _("Remembers the language you chose.") }}</td><td data-label="{{ _("Duration") }}">{{ _("1 year") }}</td></tr>
+        <tr><td class="mono" data-label="{{ _("Name") }}">cookie_notice</td><td data-label="{{ _("Provider") }}">mythras.eu</td><td data-label="{{ _("Purpose") }}">{{ _("Remembers that you closed the cookie notice.") }}</td><td data-label="{{ _("Duration") }}">{{ _("1 year") }}</td></tr>
+        <tr><td class="mono" data-label="{{ _("Name") }}">__cf_bm</td><td data-label="{{ _("Provider") }}">Cloudflare</td><td data-label="{{ _("Purpose") }}">{{ _("Protects the site from bots and attacks.") }}</td><td data-label="{{ _("Duration") }}">{{ _("30 minutes") }}</td></tr>
+        <tr><td class="mono" data-label="{{ _("Name") }}">cf_clearance</td><td data-label="{{ _("Provider") }}">Cloudflare</td><td data-label="{{ _("Purpose") }}">{{ _("Set only if you pass a security check, so you are not asked again.") }}</td><td data-label="{{ _("Duration") }}">{{ _("Set by the security check") }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>{{ _("Third-party content") }}</h2>
+  <p>{{ _("Fonts and all other files are served from our own server. When you are signed in, your avatar image is loaded from Discord (cdn.discordapp.com).") }}</p>
+
+
+  <h2>{{ _("How to manage cookies") }}</h2>
+  <p>{{ _("You can delete or block cookies in your browser settings. If you block essential cookies, signing in will not work.") }}</p>
+
+  <p><a href="{{ url_for('privacy') }}">{{ _("Privacy Policy") }}</a></p>
+</article>
+{% endblock %}

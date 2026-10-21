@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box, status_badge, servers_cell, events_table with context %}
+{% block title %}{{ key_id }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker"><a href="{{ url_for('admin_keys') }}" class="back-link">{{ _("Keys") }}</a> / {{ _("Detail") }}</p>
+      <div class="key-row key-title">
+        <code class="key">{{ key_id }}</code>
+        <button class="icon-btn" type="button" data-copy aria-label="{{ _('Copy key') }}">{{ icon('copy') }}</button>
+      </div>
+    </div>
+    {% if k %}
+    <div class="head-badges">
+      <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>
+      {{ status_badge(k.status) }}
+    </div>
+    {% endif %}
+  </header>
+  {{ admin_nav('keys') }}
+  {{ api_error_box(api_error) }}
+
+  {% if k %}
+  <section class="stat-row" aria-label="{{ _('Key summary') }}">
+    <div class="stat"><span>{{ _("Servers") }}</span><b>{{ servers_cell(k) }}</b></div>
+    <div class="stat"><span>{{ _("Expires") }}</span><b class="stat-sm">{{ k.expires|ms_date }}</b></div>
+    <div class="stat"><span>{{ _("Created") }}</span><b class="stat-sm">{{ k.created|ms_date }}</b></div>
+    <div class="stat"><span>{{ _("Owner") }}</span><b class="stat-sm">{% if k.owner %}{{ names.get(k.owner) or k.owner }}{% else %}{{ _("None") }}{% endif %}</b></div>
+  </section>
+
+  {% if k.note %}
+  <p class="note-line">{{ icon('settings') }}<span>{{ k.note }}</span></p>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('crosshair') }}{{ _("Actions") }}</h2></div>
+    <div class="action-grid">
+      <div class="action">
+        <h3>{{ _("Restore key") if k.status == 'revoked' else _("Revoke key") }}</h3>
+        {% if k.status == 'revoked' %}
+          <p class="muted small">{{ _("Allow the key to be used again.") }}</p>
+          <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='unrevoke') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline full" type="submit">{{ _("Unrevoke") }}</button>
+          </form>
+        {% else %}
+          <p class="muted small">{{ _("The server stops within 6 hours.") }}</p>
+          <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='revoke') }}" data-confirm="{{ _('Revoke %(key)s? Its servers stop within 6 hours.', key=key_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-danger full" type="submit">{{ _("Revoke") }}</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Delete key") }}</h3>
+        <p class="muted small">{{ _("Removes the key for good: it stops working and disappears from every list. Requires a 2FA code from the last 15 minutes.") }}</p>
+        <form method="post" action="{{ url_for('admin_delete_key', key=key_id) }}" data-confirm="{{ _('Delete %(key)s for good? This cannot be undone.', key=key_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn btn-danger full" type="submit">{{ icon('x') }}{{ _("Delete") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Reset servers") }}</h3>
+        <p class="muted small">{{ _("Forget all servers, e.g. after a machine move.") }}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='reset') }}" data-confirm="{{ _('Reset all servers of %(key)s?', key=key_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn btn-outline full" type="submit">{{ _("Reset servers") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Change plan") }}</h3>
+        <p class="muted small">{{ _("Applies at the server's next restart.") }}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='plan') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="sr-only" for="plan-select">{{ _("Plan") }}</label>
+          <select name="plan" id="plan-select">
+            {% for p in plans.plans %}<option value="{{ p.plan }}" {% if p.plan == k.plan %}selected{% endif %}>{{ p.plan|plan_name }}</option>{% endfor %}
+          </select>
+          <button class="btn btn-outline" type="submit">{{ _("Save") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Renew") }}</h3>
+        <p class="muted small">{{ _("Monthly subscription paid: adds 30 days from the expiry, or from today if expired.") }}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='renew') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn btn-primary" type="submit">{{ icon('plus') }}{{ _("Renew (+1 month)") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Extend") }}</h3>
+        <p class="muted small">{{ _("Adds days (from today if expired). 0 = never expires.") }}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='extend') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="sr-only" for="extend-days">{{ _("Days") }}</label>
+          <input id="extend-days" name="days" inputmode="numeric" pattern="[0-9]*" placeholder="{{ _('Days') }}" required>
+          <button class="btn btn-outline" type="submit">{{ _("Extend") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Server limit") }}</h3>
+        <p class="muted small">{{ _("-1 = plan default, 0 = unlimited.") }}{% if k.customMaxServers is defined and k.customMaxServers != -1 %} {{ _("Custom limit set.") }}{% endif %}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='servers') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="sr-only" for="server-limit">{{ _("Server limit") }}</label>
+          <input id="server-limit" name="servers" inputmode="numeric" pattern="-?[0-9]*" value="{{ k.customMaxServers if k.customMaxServers is defined else -1 }}" required>
+          <button class="btn btn-outline" type="submit">{{ _("Save") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Owner") }}</h3>
+        <p class="muted small">{{ _("Discord user ID. Empty removes the owner and the role.") }}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='owner') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="sr-only" for="owner-id">{{ _("Owner Discord ID") }}</label>
+          <input id="owner-id" name="owner" inputmode="numeric" pattern="[0-9]{17,20}" value="{{ k.owner or '' }}" placeholder="{{ _('Discord ID') }}">
+          <button class="btn btn-outline" type="submit">{{ _("Save") }}</button>
+        </form>
+      </div>
+
+      <div class="action action-wide">
+        <h3>{{ _("Note") }}</h3>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='note') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="sr-only" for="note">{{ _("Note") }}</label>
+          <input id="note" name="note" maxlength="500" value="{{ k.note or '' }}" placeholder="{{ _('Internal note (customers can\'t see it)') }}">
+          <button class="btn btn-outline" type="submit">{{ _("Save") }}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('cpu') }}{{ _("Servers") }}</h2></div>
+    {% if k.servers %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">{{ _("Server ID") }}</th><th scope="col">IP</th><th scope="col">{{ _("First seen") }}</th><th scope="col">{{ _("Last seen") }}</th><th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("State") }}</th></tr></thead>
+        <tbody>
+          {% for s in k.servers %}
+          <tr>
+            <td class="mono small">{{ s.server }}</td>
+            <td class="mono small">{{ s.ip or '—' }}</td>
+            <td class="nowrap small">{{ s.firstSeen|ms_date('—') }}</td>
+            <td class="nowrap small" title="{{ s.lastSeen|ms_date('—') }}">{{ s.lastSeen|ago }}</td>
+            <td class="mono small">{{ s.version or '—' }}</td>
+            <td>{% if s.active %}<span class="status-dot">{{ _("Online") }}</span>{% else %}<span class="status-dot is-off">{{ _("Offline") }}</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted pad">{{ _("No server has used this key yet.") }}</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>{{ icon('activity') }}{{ _("Events") }}</h2>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_log', key=key_id) }}">{{ _("Open in log") }} {{ icon('arrow') }}</a>
+    </div>
+    {{ events_table(k.events or [], show_key=False) }}
+  </section>
+  {% endif %}
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

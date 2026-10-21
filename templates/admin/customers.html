@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box, status_badge with context %}
+{% block title %}{{ _("Customers") }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin</p>
+      <h1>{{ _("Customers") }}</h1>
+      <p class="muted small">{{ _("Everyone who signed in with Discord: %(n)s accounts.", n=total) }}</p>
+    </div>
+  </header>
+  {{ admin_nav('customers') }}
+  {{ api_error_box(api_error) }}
+
+  <section class="panel">
+    <form class="filters" method="get" action="{{ url_for('admin_customers') }}" role="search">
+      <label class="grow">{{ _("Search") }}
+        <input type="search" name="q" value="{{ q }}" maxlength="64" placeholder="{{ _('Discord name or ID') }}" autofocus>
+      </label>
+      <button class="btn btn-primary" type="submit">{{ _("Search") }}</button>
+      {% if q %}<a class="btn btn-ghost" href="{{ url_for('admin_customers') }}">{{ _("Clear") }}</a>{% endif %}
+    </form>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr>
+          <th scope="col">{{ _("Customer") }}</th><th scope="col">{{ _("Discord ID") }}</th><th scope="col">{{ _("Keys") }}</th>
+          <th scope="col">{{ _("Last login") }}</th><th scope="col"><span class="sr-only">{{ _("Actions") }}</span></th>
+        </tr></thead>
+        <tbody>
+          {% for u in users %}
+          {% set ks = keys_by_owner.get(u.discord_id, []) %}
+          <tr>
+            <td>
+              <span class="user-cell">
+                {% if u.avatar %}<img src="{{ u.avatar }}" alt="" width="28" height="28">{% else %}<span class="mini-avatar">{{ u.username[:1]|upper }}</span>{% endif %}
+                <b>{{ u.username }}</b>
+              </span>
+            </td>
+            <td>
+              <span class="key-row"><code class="mono small">{{ u.discord_id }}</code><button class="icon-btn" type="button" data-copy-code aria-label="{{ _('Copy') }}">{{ icon('copy') }}</button></span>
+            </td>
+            <td class="small">
+              {% for k in ks %}<a class="mono" href="{{ url_for('admin_key', key=k.key) }}">{{ k.key[:9] }}…</a> <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span> {{ status_badge(k.status) }}<br>{% else %}<span class="muted">—</span>{% endfor %}
+            </td>
+            <td class="small nowrap">{{ (u.last_login or u.created_at)|date }}</td>
+            <td class="row-actions"><a class="btn btn-outline btn-sm" href="{{ url_for('admin_new_key', owner=u.discord_id) }}">{{ icon('key') }}{{ _("Create license") }}</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="muted">{{ _("No customer matches this search.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="table-foot muted small">{{ _("Customers appear here after their first login on the website. You can also create a key for someone who never logged in: use their Discord ID.") }}</p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

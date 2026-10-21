@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _("Set up 2FA") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container auth-wrap">
+  <section class="auth-card">
+    <p class="kicker">{{ icon('shield') }}{{ _("Admin security") }}</p>
+    <h1>{{ _("Set up two-factor authentication") }}</h1>
+    <p class="muted">{{ _("Admin access needs a code from an authenticator app (Google Authenticator, Authy, 2FAS…).") }}</p>
+
+    <ol class="auth-steps">
+      <li>
+        <h2>{{ _("1. Scan the QR code") }}</h2>
+        <div class="qr" role="img" aria-label="{{ _('QR code for your authenticator app') }}">{{ qr }}</div>
+        <p class="muted small">{{ _("Can't scan? Enter this secret manually (time-based, 6 digits, 30 seconds):") }}</p>
+        <div class="key-row">
+          <code class="key secret-code">{{ secret }}</code>
+          <button class="icon-btn" type="button" data-copy aria-label="{{ _('Copy secret') }}">{{ icon('copy') }}</button>
+        </div>
+      </li>
+      <li>
+        <h2>{{ _("2. Enter the 6-digit code") }}</h2>
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <form method="post" action="{{ url_for('admin_2fa_setup') }}" class="code-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label>{{ _("Code from the app") }}
+            <input class="code-input" name="code" required autofocus autocomplete="one-time-code"
+                   inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" placeholder="123456">
+          </label>
+          <button class="btn btn-primary btn-lg" type="submit">{{ _("Confirm and enable") }}</button>
+        </form>
+        <p class="muted small">{{ _("The secret is saved only after this code is confirmed.") }}</p>
+      </li>
+    </ol>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}
