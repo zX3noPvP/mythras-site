@@ -37,7 +37,10 @@ def view(k, admin=True, detail=False):
         "created": k["created"], "expires": k["expires"], "owner": k["owner"], "maxServers": max_s,
         "customMaxServers": k["custom"], "activeServers": sum(1 for s in k["servers"] if s["active"]),
         "nextReset": k["nextReset"],
+        "ips": list(k.get("ips") or []),
     }
+    if admin:
+        out["config"] = dict(k.get("config") or {})
     if detail:
         out["servers"] = [dict(s) if admin else {**{x: s[x] for x in s if x != "ip"}, "server": s["server"][:8] + "…"} for s in k["servers"]]
     return out
@@ -286,6 +289,18 @@ class Handler(BaseHTTPRequestHandler):
                 d = int(body.get("days", 0))
                 k["expires"] = 0 if d == 0 else max(now(), k["expires"] or now()) + d * DAY
                 log(actor, "expires", "Expiry changed", k["key"], f"+{d} days")
+            elif action == "ips":
+                ips = body.get("ips")
+                if not isinstance(ips, list):
+                    return self.fail("ips must be a list")
+                k["ips"] = [str(i) for i in ips]
+                log(actor, "ips", "Allowed IPs changed", k["key"], ", ".join(k["ips"]) or "any")
+            elif action == "config":
+                cfg = body.get("config")
+                if not isinstance(cfg, dict):
+                    return self.fail("config must be an object")
+                k["config"] = cfg
+                log(actor, "config", "Plugin configuration changed", k["key"], f"{len(cfg)} options")
             elif action == "servers":
                 k["custom"] = int(body.get("servers"))
                 log(actor, "servers", "Server limit changed", k["key"], str(k["custom"]))

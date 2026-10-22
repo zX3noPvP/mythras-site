@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav with context %}
+{% block title %}{{ _("Questions") }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin</p>
+      <h1>{{ _("Setup questions") }}</h1>
+      <p class="muted small">{{ _("Each plan sees its questions and those of the plans below. The config key tells the plugin which option the answer sets; keys starting with info. are only shown to you.") }}</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('admin_question', qid='new') }}">{{ icon('plus') }}{{ _("New question") }}</a>
+  </header>
+  {{ admin_nav('questions') }}
+
+  {% for plan in ('base', 'pro', 'enterprise') %}
+  <section class="panel">
+    <div class="panel-head"><h2><span class="badge badge-{{ plan }}">{{ plan|plan_name }}</span></h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">#</th><th scope="col">{{ _("Question") }}</th><th scope="col">{{ _("Type") }}</th><th scope="col">{{ _("Default") }}</th><th scope="col">{{ _("Config key") }}</th><th scope="col"><span class="sr-only">{{ _("Actions") }}</span></th></tr></thead>
+        <tbody>
+          {% for q in questions if q.plan == plan %}
+          <tr{% if not q.enabled %} class="muted"{% endif %}>
+            <td class="mono small">{{ q.position }}</td>
+            <td>{{ _(q.label) }}{% if q.warning %} <span class="small red">⚠</span>{% endif %}{% if not q.enabled %} <span class="chip-demo">{{ _("Hidden") }}</span>{% endif %}{% if q.show_if %}<br><span class="small muted">{{ _("only if") }} {{ q.show_if }}</span>{% endif %}</td>
+            <td class="small">{{ q.kind }}</td>
+            <td class="mono small">{{ q.default_value or '—' }}</td>
+            <td class="mono small muted">{{ q.config_key }}</td>
+            <td class="row-actions">
+              <a class="btn btn-outline btn-sm" href="{{ url_for('admin_question', qid=q.id) }}">{{ _("Edit") }}</a>
+              <form method="post" action="{{ url_for('admin_delete_question', qid=q.id) }}" class="inline" data-confirm="{{ _('Delete this question?') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-ghost btn-sm" type="submit" aria-label="{{ _('Delete') }}">{{ icon('x') }}</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="muted">{{ _("No questions for this plan.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endfor %}
+
+  <form method="post" action="{{ url_for('admin_reset_questions') }}" data-confirm="{{ _('Replace all questions with the default ones? Your changes will be lost.') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn btn-outline btn-sm" type="submit">{{ _("Restore the default questions") }}</button>
+  </form>
+</div>
+{% endblock %}

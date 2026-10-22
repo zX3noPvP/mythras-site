@@ -50,7 +50,9 @@ def collect():
     found.update({"Active", "Revoked", "Expired", "Unknown", "Never"})
     sys.path.insert(0, str(ROOT))
     import docs
+    import setup_forms
     found.update(docs.texts())
+    found.update(setup_forms.texts())
     return found - {""}
 
 

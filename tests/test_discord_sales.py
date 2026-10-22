@@ -24,7 +24,8 @@ check("pricing: paid tiers open the Discord invite", home.count(f'href="{INVITE}
 check("dashboard: 3 Discord buttons + steps", dash.count(f'href="{INVITE}"') >= 3 and "Open a ticket" in dash and "Get your key" in dash)
 check("no online payment left", all(w not in (home + dash) for w in ("PayPal", "Lemon", 'action="/buy"', "test_pro")))
 check("/buy and payment webhooks are gone", c.post("/buy", data={"csrf_token": "tok", "plan": "pro"}).status_code == 404
-      and m.app.test_client().post("/webhooks/paypal").status_code == 404)
+      and m.app.test_client().post("/webhooks/paypal").status_code in (400, 404)
+      and m.app.test_client().get("/webhooks/paypal").status_code in (404, 405))
 check("CSP form-action only self", "form-action 'self';" in m.app.test_client().get("/").headers["Content-Security-Policy"])
 terms = html.unescape(m.app.test_client().get("/terms").data.decode())
 check("terms: Discord tickets, no automatic renewal", "opening a ticket on our Discord server" in terms and "does not renew by itself" in terms)

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box with context %}
+{% block title %}{{ _("Answers") }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <p class="back-link"><a href="{{ url_for('admin_invites') }}">← {{ _("Setup links") }}</a></p>
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin · <span class="badge badge-{{ row.plan }}">{{ row.plan|plan_name }}</span></p>
+      <h1>{{ _("Answers of %(name)s", name=names.get(row.discord_id) or row.discord_id) }}</h1>
+      <p class="muted small">{{ row.created_at|date }} · Discord ID <span class="mono">{{ row.discord_id }}</span></p>
+    </div>
+  </header>
+  {{ admin_nav('invites') }}
+  {{ api_error_box(api_error) }}
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('key') }}{{ _("License") }}</h2>
+      {% if row.applied_at %}<span class="status-dot">{{ _("Configuration applied %(date)s", date=row.applied_at|date) }}</span>
+      {% elif row.apply_error %}<span class="status-dot is-bad">{{ _("Not applied") }}: {{ row.apply_error }}</span>{% endif %}
+    </div>
+    <div class="action-grid">
+      <div class="action">
+        <h3>{{ _("Send the configuration") }}</h3>
+        <p class="muted small">{{ _("The license server passes it to the plugin at its next start.") }}</p>
+        <form method="post" action="{{ url_for('admin_apply_setup', answer_id=row.id) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="sr-only" for="apply-key">{{ _("Key") }}</label>
+          <select id="apply-key" name="key">
+            {% if not row.license_key %}<option value="">{{ _("Choose the key") }}</option>{% endif %}
+            {% for k in keys %}<option value="{{ k.key }}" {% if k.key == row.license_key %}selected{% endif %}>{{ k.key }} · {{ k.plan|plan_name }}{% if k.owner %} · {{ names.get(k.owner) or k.owner }}{% endif %}</option>{% endfor %}
+          </select>
+          <button class="btn btn-primary" type="submit">{{ _("Send") }}</button>
+        </form>
+      </div>
+      <div class="action">
+        <h3>{{ _("Lock the key to this IP") }}</h3>
+        {% if row.server_ip and row.license_key %}
+          <p class="muted small">{{ _("The key will work only from %(ip)s. Requires a 2FA code from the last 15 minutes.", ip=row.server_ip) }}</p>
+          {% if key_info and key_info.ips %}<p class="small">{{ _("Now allowed:") }} <span class="mono">{{ key_info.ips|join(', ') }}</span></p>{% endif %}
+          <form method="post" action="{{ url_for('admin_setup_lock_ip', answer_id=row.id) }}" data-confirm="{{ _('Allow %(key)s only from %(ip)s?', key=row.license_key, ip=row.server_ip) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline full" type="submit">{{ icon('shield') }}{{ _("Use %(ip)s", ip=row.server_ip) }}</button>
+          </form>
+        {% else %}
+          <p class="muted small">{{ _("Send the configuration to a key first. You can also set the IP by hand on the key page.") }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('settings') }}{{ _("Answers") }}</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">{{ _("Question") }}</th><th scope="col">{{ _("Answer") }}</th><th scope="col">{{ _("Config key") }}</th></tr></thead>
+        <tbody>
+          {% for key, value in answers.items() %}
+          {% set q = labels.get(key) %}
+          <tr>
+            <td>{{ _(q.label) if q else key }}</td>
+            <td class="mono">{% if value is sameas true %}{{ _("Yes") }}{% elif value is sameas false %}{{ _("No") }}{% elif value is iterable and value is not string %}{{ value|join(', ') or '—' }}{% else %}{{ value if value != '' else '—' }}{% endif %}</td>
+            <td class="mono small muted">{{ key }}{% if key.startswith('info.') %} · {{ _("only for you") }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -5,6 +5,8 @@
   <a href="{{ url_for('admin') }}" {% if active == 'overview' %}aria-current="page"{% endif %}>{{ _("Overview") }}</a>
   <a href="{{ url_for('admin_keys') }}" {% if active == 'keys' %}aria-current="page"{% endif %}>{{ _("Keys") }}</a>
   <a href="{{ url_for('admin_new_key') }}" {% if active == 'new' %}aria-current="page"{% endif %}>{{ _("Create license") }}</a>
+  <a href="{{ url_for('admin_invites') }}" {% if active == 'invites' %}aria-current="page"{% endif %}>{{ _("Setup links") }}</a>
+  <a href="{{ url_for('admin_questions') }}" {% if active == 'questions' %}aria-current="page"{% endif %}>{{ _("Questions") }}</a>
   <a href="{{ url_for('admin_customers') }}" {% if active == 'customers' %}aria-current="page"{% endif %}>{{ _("Customers") }}</a>
   <a href="{{ url_for('admin_panel') }}" {% if active == 'panel' %}aria-current="page"{% endif %}>{{ _("Panel") }}</a>
   <a href="{{ url_for('admin_ai') }}" {% if active == 'ai' %}aria-current="page"{% endif %}>Cloud AI</a>

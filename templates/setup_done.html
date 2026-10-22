@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _("Setup") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container auth-wrap">
+  <section class="auth-card">
+    <p class="kicker">{{ icon('check') }}{{ _("Setup") }}</p>
+    <h1>{{ _("Thanks, your answers are saved") }}</h1>
+    {% if applied %}
+    <p>{{ _("Your configuration is ready: Mythras applies it the next time your server starts with your key.") }}</p>
+    {% else %}
+    <p>{{ _("We prepare your configuration and link it to your license. You will find the key in your dashboard.") }}</p>
+    {% endif %}
+    <p><a class="btn btn-primary" href="{{ url_for('dashboard') }}">{{ _("Open my licenses") }} {{ icon('arrow') }}</a></p>
+  </section>
+</div>
+{% endblock %}

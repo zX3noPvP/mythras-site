@@ -28,7 +28,11 @@
     <div class="stat"><span>{{ _("Expires") }}</span><b class="stat-sm">{{ k.expires|ms_date }}</b></div>
     <div class="stat"><span>{{ _("Created") }}</span><b class="stat-sm">{{ k.created|ms_date }}</b></div>
     <div class="stat"><span>{{ _("Owner") }}</span><b class="stat-sm">{% if k.owner %}{{ names.get(k.owner) or k.owner }}{% else %}{{ _("None") }}{% endif %}</b></div>
+    <div class="stat"><span>{{ _("Allowed IP") }}</span><b class="stat-sm mono">{{ (k.ips or [])|join(', ') or _("Any") }}</b></div>
   </section>
+  {% if setups %}
+  <p class="note-line">{{ icon('settings') }}<span>{{ _("Setup answers:") }} {% for s in setups %}<a href="{{ url_for('admin_setup', answer_id=s.id) }}">{{ s.created_at|date }}</a>{% if s.server_ip %} ({{ s.server_ip }}){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</span></p>
+  {% endif %}
 
   {% if k.note %}
   <p class="note-line">{{ icon('settings') }}<span>{{ k.note }}</span></p>
@@ -102,6 +106,18 @@
           <label class="sr-only" for="extend-days">{{ _("Days") }}</label>
           <input id="extend-days" name="days" inputmode="numeric" pattern="[0-9]*" placeholder="{{ _('Days') }}" required>
           <button class="btn btn-outline" type="submit">{{ _("Extend") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Allowed IP") }}</h3>
+        <p class="muted small">{{ _("The key works only from these numeric IP addresses, one per line. Empty = any IP.") }}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='ips') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="sr-only" for="key-ips">{{ _("Allowed IP") }}</label>
+          <textarea id="key-ips" name="ips" rows="2" class="mono" placeholder="123.45.67.89">{{ (k.ips or [])|join('
+') }}</textarea>
+          <button class="btn btn-outline full" type="submit">{{ _("Save") }}</button>
         </form>
       </div>
 

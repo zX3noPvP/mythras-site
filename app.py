@@ -4,6 +4,7 @@ Licenses live on the Mythras license server; this app talks to it only from the
 backend through mythras_api (the API token never reaches the browser).
 """
 
+import ipaddress
 import json
 import logging
 import math
@@ -42,6 +43,7 @@ import admin_2fa  # noqa: E402
 import i18n  # noqa: E402
 import mythras_api  # noqa: E402  (reads env after load_dotenv)
 import downloads  # noqa: E402
+import setup_forms  # noqa: E402
 import docs  # noqa: E402
 from mythras_api import MythrasError  # noqa: E402
 
@@ -61,6 +63,8 @@ DATABASE = Path(os.getenv("DATABASE_PATH", BASE_DIR / "data" / "mythras.db"))
 
 # Discord server invite: support, and purchases (customers open a ticket there; no online payments on the site)
 SUPPORT_DISCORD = os.getenv("SUPPORT_DISCORD_URL", "")
+# the Discord bot creates setup links with POST /api/bot/invites and this token (empty = bot API off)
+BOT_API_TOKEN = os.getenv("BOT_API_TOKEN", "")
 # Free version download pages (only https links are shown)
 FREE_LINKS = [
     {"name": name, "url": os.getenv(env, "").strip()}
@@ -229,6 +233,7 @@ def init_db():
     db = sqlite3.connect(DATABASE)
     db.executescript(SCHEMA)
     db.executescript(admin_2fa.SCHEMA)
+    setup_forms.init(db)
     have = {r[1] for r in db.execute("PRAGMA table_info(orders)")}
     for col in ("subscription_id", "sub_status", "renews_at", "ends_at"):
         if col not in have:  # databases created before monthly plans
@@ -437,8 +442,8 @@ app.before_request_funcs.setdefault(None, []).insert(0, allow_large_upload)
 
 @app.before_request
 def check_csrf():
-    # webhooks come from the payment provider and are authenticated by their signature instead
-    if request.method == "POST" and not request.path.startswith("/webhooks/"):
+    # the bot API has no cookies: it is authenticated by its own token instead
+    if request.method == "POST" and not request.path.startswith("/api/bot/"):
         sent = request.form.get("csrf_token", "")
         expected = session.get("csrf_token", "")
         if not expected or not secrets.compare_digest(sent, expected):
@@ -643,6 +648,8 @@ def robots_txt():
         "Disallow: /panel",
         "Disallow: /download",
         "Disallow: /heads/",
+        "Disallow: /setup/",
+        "Disallow: /api/",
         "Disallow: /login",
         "Disallow: /auth/",
         f"Sitemap: {url_for('sitemap_xml', _external=True)}",
@@ -699,6 +706,7 @@ def login():
         return redirect(url_for("index"))
     state = secrets.token_urlsafe(24)
     session["oauth_state"] = state
+    session["login_next"] = _local_next("")
     params = {
         "client_id": DISCORD_CLIENT_ID,
         "redirect_uri": DISCORD_REDIRECT_URI,
@@ -712,6 +720,7 @@ def login():
 @app.get("/auth/discord/callback")
 def discord_callback():
     expected_state = session.pop("oauth_state", None)
+    next_url = session.pop("login_next", "")
     state = request.args.get("state", "")
     if not expected_state or not secrets.compare_digest(state, expected_state):
         abort(400)
@@ -767,7 +776,7 @@ def discord_callback():
     session.clear()
     session["discord_id"] = me["id"]
     flash(t("Signed in with Discord."), "success")
-    return redirect(url_for("dashboard"))
+    return redirect(next_url or url_for("dashboard"))
 
 
 @app.post("/logout")
@@ -863,6 +872,302 @@ def download_plugin():
                      mimetype="application/java-archive", max_age=0)
     resp.headers["X-Content-SHA256"] = jar["sha256"]
     return resp
+
+
+# ---------- setup links: single-use invites with the questions of a plan ----------
+# An admin (or the Discord bot) creates a link; the customer signs in, answers, and the answers become the plugin
+# config of their key on the license server. Each link works once.
+
+INVITE_HASH_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def setup_link(token):
+    return url_for("setup_page", token=token, _external=True)
+
+
+def apply_setup(db, answer_id, key, actor):
+    """Send the plugin config of a set of answers to the license server, for this key. Returns an error or None."""
+    row = db.execute("SELECT * FROM setup_answers WHERE id = ?", (answer_id,)).fetchone()
+    config = setup_forms.plugin_config(json.loads(row["answers"]))
+    try:
+        mythras_api.key_action(key, "config", actor, config=config)
+    except MythrasError as err:
+        db.execute("UPDATE setup_answers SET license_key = ?, apply_error = ? WHERE id = ?", (key, err.message, answer_id))
+        db.commit()
+        return err.message
+    db.execute("UPDATE setup_answers SET license_key = ?, applied_at = ?, apply_error = NULL WHERE id = ?",
+               (key, now_iso(), answer_id))
+    db.commit()
+    return None
+
+
+@app.route("/setup/<token>", methods=["GET", "POST"])
+def setup_page(token):
+    user = current_user()
+    if user is None:
+        return redirect(url_for("login", next=request.path))
+    db = get_db()
+    invite = setup_forms.find_invite(db, token)
+    state = setup_forms.invite_state(invite)
+    if state != "open":
+        messages = {
+            "used": t("This setup link was already used. Ask for a new one on our Discord server."),
+            "expired": t("This setup link has expired. Ask for a new one on our Discord server."),
+        }
+        return render_template("error.html", code=410, message=messages.get(state, t("This setup link is not valid."))), 410
+    if invite["discord_id"] and invite["discord_id"] != user["discord_id"]:
+        return render_template("error.html", code=403, message=t("This setup link is for another Discord account.")), 403
+    questions = setup_forms.questions_for(db, invite["plan"])
+    values, errors = {}, {}
+    if request.method == "POST":
+        answers, errors = setup_forms.validate(questions, request.form)
+        values = {k: request.form.get(k, "") for k in (q["config_key"] for q in questions)}
+        if not errors:
+            if not setup_forms.consume_invite(db, invite, user["discord_id"]):
+                return render_template("error.html", code=410, message=t("This setup link was already used. Ask for a new one on our Discord server.")), 410
+            cur = db.execute(
+                "INSERT INTO setup_answers (token_hash, discord_id, plan, license_key, answers, server_ip, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (invite["token_hash"], user["discord_id"], invite["plan"], invite["license_key"],
+                 json.dumps(answers), answers.get("info.server_ip"), now_iso()),
+            )
+            db.commit()
+            applied = False
+            if invite["license_key"]:
+                applied = apply_setup(db, cur.lastrowid, invite["license_key"], f"website: {user['username']} (setup)") is None
+            log.info("Setup answers %s from %s (%s)", cur.lastrowid, user["discord_id"], invite["plan"])
+            return render_template("setup_done.html", applied=applied, plan=invite["plan"])
+    return render_template("setup.html", invite=invite, questions=questions, values=values, errors=errors)
+
+
+@app.get("/admin/invites")
+@admin_required
+def admin_invites():
+    db = get_db()
+    invites = db.execute("SELECT * FROM setup_invites ORDER BY created_at DESC LIMIT 100").fetchall()
+    answers = db.execute("SELECT * FROM setup_answers ORDER BY created_at DESC LIMIT 100").fetchall()
+    try:
+        keys = mythras_api.list_keys()
+    except MythrasError:
+        keys = []
+    return render_template("admin/invites.html", invites=invites, answers=answers, keys=keys,
+                           states={i["token_hash"]: setup_forms.invite_state(i) for i in invites},
+                           new_link=session.pop("new_invite_link", None), names=known_names(),
+                           customers=db.execute("SELECT discord_id, username FROM users ORDER BY COALESCE(last_login, created_at) DESC LIMIT 500").fetchall())
+
+
+@app.post("/admin/invites")
+@admin_required
+def admin_create_invite():
+    form = request.form
+    owner = form.get("discord_id", "").strip()
+    key = normalize_key(form.get("key")) or None
+    try:
+        if owner and not DISCORD_ID_RE.match(owner):
+            raise ValueError("Owner must be a Discord user ID (17-20 digits), or empty to remove.")
+        hours = parse_int(form.get("hours"), 1, "Enter a number of hours.", maximum=24 * 60, default=168)
+        token = setup_forms.create_invite(get_db(), form.get("plan", ""), actor_name(), license_key=key,
+                                          discord_id=owner or None, note=form.get("note", ""), hours=hours)
+    except ValueError as err:
+        flash(t(str(err)), "error")
+        return redirect(url_for("admin_invites"))
+    session["new_invite_link"] = setup_link(token)
+    log.info("Setup invite (%s) created by %s", form.get("plan"), actor_name())
+    return redirect(url_for("admin_invites"))
+
+
+@app.post("/admin/invites/<token_hash>/revoke")
+@admin_required
+def admin_revoke_invite(token_hash):
+    if not INVITE_HASH_RE.match(token_hash):
+        abort(404)
+    db = get_db()
+    db.execute("UPDATE setup_invites SET revoked_at = ? WHERE token_hash = ? AND used_at IS NULL", (now_iso(), token_hash))
+    db.commit()
+    flash(t("Link revoked."), "success")
+    return redirect(url_for("admin_invites"))
+
+
+@app.get("/admin/setups/<int:answer_id>")
+@admin_required
+def admin_setup(answer_id):
+    db = get_db()
+    row = db.execute("SELECT * FROM setup_answers WHERE id = ?", (answer_id,)).fetchone()
+    if not row:
+        abort(404)
+    answers = json.loads(row["answers"])
+    labels = {q["config_key"]: q for q in setup_forms.all_questions(db)}
+    key_info, api_error = None, None
+    try:
+        keys = mythras_api.list_keys()
+        if row["license_key"]:
+            key_info = mythras_api.get_key(row["license_key"])
+    except MythrasError as err:
+        keys, api_error = [], err.message
+    return render_template("admin/setup.html", row=row, answers=answers, labels=labels, keys=keys, key_info=key_info,
+                           api_error=api_error, names=known_names())
+
+
+@app.post("/admin/setups/<int:answer_id>/apply")
+@admin_required
+def admin_apply_setup(answer_id):
+    db = get_db()
+    row = db.execute("SELECT * FROM setup_answers WHERE id = ?", (answer_id,)).fetchone()
+    if not row:
+        abort(404)
+    key = normalize_key(request.form.get("key")) or row["license_key"]
+    if not key:
+        flash(t("Choose the key to configure."), "error")
+        return redirect(url_for("admin_setup", answer_id=answer_id))
+    error = apply_setup(db, answer_id, key, actor_name())
+    flash(error if error else t("Configuration sent to the license server for %(key)s.", key=key), "error" if error else "success")
+    return redirect(url_for("admin_setup", answer_id=answer_id))
+
+
+@app.post("/admin/setups/<int:answer_id>/lock-ip")
+@admin_required
+def admin_setup_lock_ip(answer_id):
+    db = get_db()
+    row = db.execute("SELECT * FROM setup_answers WHERE id = ?", (answer_id,)).fetchone()
+    if not row or not row["license_key"] or not row["server_ip"]:
+        abort(404)
+    stale = stale_for_sensitive_action()
+    if stale:
+        return stale
+    try:
+        mythras_api.key_action(row["license_key"], "ips", actor_name(), ips=[row["server_ip"]])
+        flash(t("Key %(key)s now works only from %(ip)s.", key=row["license_key"], ip=row["server_ip"]), "success")
+    except MythrasError as err:
+        flash(err.message, "error")
+    return redirect(url_for("admin_setup", answer_id=answer_id))
+
+
+# ---------- admin: questions of the setup page ----------
+
+def question_from_form(form):
+    """Admin form -> validated column values. Raises ValueError with an English message."""
+    kind = form.get("kind", "")
+    plan = form.get("plan", "")
+    key = form.get("config_key", "").strip().lower()
+    label = form.get("label", "").strip()[:200]
+    if kind not in setup_forms.KINDS:
+        raise ValueError("Choose a valid answer type.")
+    if plan not in setup_forms.PLANS:
+        raise ValueError("Choose a valid plan.")
+    if not setup_forms.CONFIG_KEY_RE.match(key):
+        raise ValueError("The config key can use lowercase letters, numbers, dots, - and _ only.")
+    if not label:
+        raise ValueError("Write the question.")
+    options = []
+    for line in form.get("options", "").splitlines():
+        if line.strip():
+            value, _, text = line.partition("=")
+            options.append([value.strip()[:64], (text.strip() or value.strip())[:120]])
+    if kind == "choice" and len(options) < 2:
+        raise ValueError("A choice needs at least 2 options, one per line: value = label.")
+
+    def number(name):
+        raw = form.get(name, "").strip()
+        if not raw:
+            return None
+        try:
+            return float(raw)
+        except ValueError:
+            raise ValueError("Minimum and maximum must be numbers.") from None
+
+    show_if = form.get("show_if", "").strip()[:120]
+    if show_if and not re.fullmatch(r"[a-z0-9_.\-]{2,80}=[A-Za-z0-9_.\-]{1,40}", show_if):
+        raise ValueError("Show only if: write config_key=value, e.g. bedrock.enabled=yes.")
+    return {
+        "plan": plan, "kind": kind, "config_key": key, "label": label,
+        "help": form.get("help", "").strip()[:300], "warning": form.get("warning", "").strip()[:200],
+        "options": json.dumps(options), "default_value": form.get("default_value", "").strip()[:200],
+        "min_value": number("min_value"), "max_value": number("max_value"), "show_if": show_if,
+        "position": parse_int(form.get("position"), 0, "Position must be 0 or more.", default=999),
+        "required": 1 if form.get("required") == "1" else 0, "enabled": 1 if form.get("enabled") == "1" else 0,
+    }
+
+
+@app.get("/admin/questions")
+@admin_required
+def admin_questions():
+    return render_template("admin/questions.html", questions=setup_forms.all_questions(get_db()))
+
+
+@app.route("/admin/questions/<qid>", methods=["GET", "POST"])
+@admin_required
+def admin_question(qid):
+    db = get_db()
+    q = None
+    if qid != "new":
+        if not qid.isdigit():
+            abort(404)
+        row = db.execute("SELECT * FROM setup_questions WHERE id = ?", (int(qid),)).fetchone()
+        if not row:
+            abort(404)
+        q = setup_forms._row(row)
+    if request.method == "POST":
+        try:
+            data = question_from_form(request.form)
+            cols = ", ".join(f"{k} = ?" for k in data)
+            if q:
+                db.execute(f"UPDATE setup_questions SET {cols} WHERE id = ?", (*data.values(), q["id"]))
+            else:
+                db.execute(f"INSERT INTO setup_questions ({', '.join(data)}) VALUES ({', '.join('?' * len(data))})",
+                           tuple(data.values()))
+            db.commit()
+        except ValueError as err:
+            flash(t(str(err)), "error")
+            return render_template("admin/question.html", q=q, form=request.form)
+        except sqlite3.IntegrityError:
+            flash(t("Another question already uses this config key."), "error")
+            return render_template("admin/question.html", q=q, form=request.form)
+        flash(t("Question saved."), "success")
+        return redirect(url_for("admin_questions"))
+    return render_template("admin/question.html", q=q, form=None)
+
+
+@app.post("/admin/questions/<int:qid>/delete")
+@admin_required
+def admin_delete_question(qid):
+    db = get_db()
+    db.execute("DELETE FROM setup_questions WHERE id = ?", (qid,))
+    db.commit()
+    flash(t("Question deleted."), "success")
+    return redirect(url_for("admin_questions"))
+
+
+@app.post("/admin/questions/reset")
+@admin_required
+def admin_reset_questions():
+    setup_forms.reset_defaults(get_db())
+    flash(t("Default questions restored."), "success")
+    return redirect(url_for("admin_questions"))
+
+
+# ---------- Discord bot API (token, no cookies): create a setup link ----------
+
+@app.post("/api/bot/invites")
+def bot_create_invite():
+    token = request.headers.get("Authorization", "")
+    if not BOT_API_TOKEN or not secrets.compare_digest(token, f"Bearer {BOT_API_TOKEN}"):
+        return jsonify(ok=False, error="unauthorized"), 401
+    body = request.get_json(silent=True) or {}
+    owner = str(body.get("discord_id") or "").strip()
+    key = normalize_key(body.get("key")) if body.get("key") else None
+    if owner and not DISCORD_ID_RE.match(owner):
+        return jsonify(ok=False, error="discord_id must be a Discord user ID"), 400
+    if body.get("key") and not key:
+        return jsonify(ok=False, error="invalid key"), 400
+    try:
+        hours = int(body.get("hours") or 168)
+        token_value = setup_forms.create_invite(get_db(), str(body.get("plan") or ""), "Discord bot",
+                                                license_key=key, discord_id=owner or None,
+                                                note=str(body.get("note") or ""), hours=hours)
+    except (ValueError, TypeError):
+        return jsonify(ok=False, error="plan must be base, pro or enterprise; hours a number"), 400
+    log.info("Setup invite (%s) created by the Discord bot", body.get("plan"))
+    return jsonify(ok=True, url=setup_link(token_value))
 
 
 # ---------- panel: servers, alerts, punishments and replays reported by Mythras ----------
@@ -1339,6 +1644,8 @@ def admin_key(key):
         plans=get_plans(),
         names=known_names(),
         api_error=api_error,
+        setups=get_db().execute("SELECT id, created_at, server_ip, applied_at FROM setup_answers WHERE license_key = ?"
+                                " ORDER BY created_at DESC LIMIT 5", (key,)).fetchall(),
     )
 
 
@@ -1349,11 +1656,12 @@ ACTION_MESSAGES = {
     "plan": "Plan changed. It applies at the server's next restart.",
     "renew": "Renewed for 1 month.",
     "extend": "Expiry updated.",
+    "ips": "Allowed IP addresses updated.",
     "servers": "Server limit updated.",
     "note": "Note saved.",
     "owner": "Owner updated.",
 }
-SENSITIVE_ACTIONS = {"revoke", "plan"}
+SENSITIVE_ACTIONS = {"revoke", "plan", "ips"}
 
 
 @app.post("/admin/keys/<key>/<action>")
@@ -1380,6 +1688,17 @@ def admin_key_action(key, action):
             fields["days"] = parse_int(form.get("days"), 0, "Days must be 0 or more (0 = never expires).", default=None)
             if fields["days"] is None:
                 raise ValueError("Enter a number of days (0 = never expires).")
+        elif action == "ips":
+            ips = []
+            for item in re.split(r"[\s,]+", form.get("ips", "").strip()):
+                if item:
+                    try:
+                        ips.append(str(ipaddress.ip_address(item)))
+                    except ValueError:
+                        raise ValueError("Enter numeric IP addresses only, e.g. 123.45.67.89 (one per line).") from None
+            if len(ips) > 10:
+                raise ValueError("At most 10 IP addresses per key.")
+            fields["ips"] = ips
         elif action == "servers":
             fields["servers"] = parse_int(form.get("servers"), -1, "Server limit must be -1, 0 or more.", default=None)
             if fields["servers"] is None:

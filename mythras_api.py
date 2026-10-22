@@ -116,7 +116,7 @@ def get_key(key):
     return call(f"/api/keys/{_seg(key)}")["key"]
 
 
-KEY_ACTIONS = {"revoke", "unrevoke", "reset", "plan", "renew", "extend", "servers", "note", "owner"}
+KEY_ACTIONS = {"revoke", "unrevoke", "reset", "plan", "renew", "extend", "servers", "note", "owner", "ips", "config"}
 
 
 def key_action(key, action, actor, **fields):

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _("Set up Mythras") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container setup-page">
+  <header class="setup-head">
+    <p class="kicker"><span class="kicker-dot"></span>{{ _("Setup") }} · <span class="badge badge-{{ invite.plan }}">{{ invite.plan|plan_name }}</span></p>
+    <h1>{{ _("Set up Mythras for your server") }}</h1>
+    <p class="muted">{{ _("Answer these questions once: we prepare the plugin configuration for your license. You can change everything later in game with /ac settings or in config.yml.") }}</p>
+    <p class="muted small">{{ icon('shield') }} {{ _("This link works only once.") }}</p>
+  </header>
+
+  {% if errors %}<div class="flash flash-error" role="alert">{{ icon('x') }}<span>{{ _("Some answers need fixing: see the fields in red.") }}</span></div>{% endif %}
+
+  <form method="post" class="setup-form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% for q in questions %}
+    {% set key = q.config_key %}
+    {% set default = lang if key == 'language' and lang in q.options|map('first')|list else q.default_value %}
+    {% set current = values.get(key, default) if values else default %}
+    <fieldset class="setup-q{% if errors.get(key) %} has-error{% endif %}" {% if q.show_if %}data-show-if="{{ q.show_if }}"{% endif %}>
+      <legend>{{ _(q.label) }}{% if q.plan != 'base' %} <span class="badge badge-{{ q.plan }}">{{ q.plan|plan_name }}</span>{% endif %}</legend>
+      {% if q.help %}<p class="muted small">{{ _(q.help) }}</p>{% endif %}
+      {% if q.warning %}<p class="setup-warn small">⚠ {{ _(q.warning) }}</p>{% endif %}
+
+      {% if q.kind == 'yesno' %}
+        <div class="seg-radio">
+          <label><input type="radio" name="{{ key }}" value="yes" {% if current == 'yes' %}checked{% endif %}><span>{{ _("Yes") }}</span></label>
+          <label><input type="radio" name="{{ key }}" value="no" {% if current != 'yes' %}checked{% endif %}><span>{{ _("No") }}</span></label>
+        </div>
+      {% elif q.kind == 'choice' %}
+        <select name="{{ key }}">
+          {% for value, text in q.options %}<option value="{{ value }}" {% if value|string == current|string %}selected{% endif %}>{{ text if key == 'language' else _(text) }}</option>{% endfor %}
+        </select>
+      {% elif q.kind == 'number' %}
+        <input name="{{ key }}" type="number" inputmode="numeric" value="{{ current }}"{% if q.min_value is not none %} min="{{ q.min_value|int }}"{% endif %}{% if q.max_value is not none %} max="{{ q.max_value|int }}"{% endif %}>
+      {% elif q.kind == 'ip' %}
+        <input name="{{ key }}" value="{{ current }}" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="123.45.67.89" maxlength="45" class="mono">
+      {% elif q.kind == 'webhook' %}
+        <input name="{{ key }}" type="url" value="{{ current }}" autocomplete="off" spellcheck="false" placeholder="https://discord.com/api/webhooks/..." maxlength="200" class="mono">
+      {% elif q.kind == 'list' %}
+        <input name="{{ key }}" value="{{ current }}" autocomplete="off" spellcheck="false" maxlength="600" placeholder="{{ _('Separated by commas') }}">
+      {% else %}
+        <input name="{{ key }}" value="{{ current }}" autocomplete="off" maxlength="200">
+      {% endif %}
+      {% if errors.get(key) %}<p class="field-error" role="alert">{{ _(errors[key]) }}</p>{% endif %}
+    </fieldset>
+    {% endfor %}
+    <button class="btn btn-primary btn-lg" type="submit">{{ icon('check') }}{{ _("Send my answers") }}</button>
+  </form>
+</div>
+{% endblock %}

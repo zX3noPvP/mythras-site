@@ -503,4 +503,24 @@
       });
     }
   }
+  // setup page: show a question only when the answer it depends on has the right value
+  var dependents = $$("[data-show-if]");
+  if (dependents.length) {
+    var form = dependents[0].form || document.querySelector(".setup-form");
+    function currentValue(name) {
+      var checked = form.querySelector('input[name="' + name + '"]:checked');
+      if (checked) return checked.value;
+      var field = form.querySelector('[name="' + name + '"]');
+      return field ? field.value : "";
+    }
+    function refresh() {
+      dependents.forEach(function (box) {
+        var parts = box.getAttribute("data-show-if").split("=");
+        var show = currentValue(parts[0]) === parts.slice(1).join("=");
+        box.hidden = !show;
+      });
+    }
+    form.addEventListener("change", refresh);
+    refresh();
+  }
 })();

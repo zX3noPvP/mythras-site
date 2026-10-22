@@ -284,6 +284,27 @@ Il sito non incassa: i pulsanti **Buy on Discord** aprono il server Discord indi
 2. **Rinnovo**: apri la chiave in **Admin → Chiavi** e premi **Rinnova (+1 mese)**.
 3. **Rimborso**: **Revoca** o **Elimina** la chiave dalla stessa pagina.
 
+## Link di setup (domande per piano) e IP della chiave
+
+1. Il cliente compra nel ticket; tu crei la chiave (**Admin → Crea licenza**).
+2. **Admin → Link di setup** → piano, chiave, (facoltativo) il suo Discord ID → **Crea link** → copialo e mandalo nel ticket.
+   Il link funziona **una sola volta**: il cliente entra con Discord, risponde alle domande del suo piano e la
+   configurazione va al server licenze, che la passa al plugin al prossimo avvio.
+3. Apri le risposte (**Admin → Link di setup → Risposte → Apri**) e premi **Usa <IP>** per far funzionare la chiave solo da
+   quell'IP (oppure scrivi gli IP a mano nella pagina della chiave, riquadro **IP consentito**).
+4. Le domande le modifichi in **Admin → Domande** (testo, piano, predefinito, avviso in rosso, "mostra solo se").
+
+**Bot Discord**: metti `BOT_API_TOKEN=` (stringa casuale) in `/etc/mythras-site.env`, riavvia, e dal bot chiama:
+
+```bash
+curl -s -X POST https://www.mythras.eu/api/bot/invites -H "Authorization: Bearer IL_TOKEN" -H "Content-Type: application/json" -d '{"plan":"pro","discord_id":"123456789012345678","key":"MYTH-XXXX-XXXX-XXXX-XXXX","note":"ticket 12"}'
+```
+
+Risposta: `{"ok": true, "url": "https://www.mythras.eu/setup/..."}` (`discord_id`, `key`, `note` e `hours` facoltativi).
+
+IP e configurazione funzionano davvero solo quando il server licenze e il plugin sono aggiornati con
+`PROMPT-LICENZE-SETUP.md`.
+
 ## Pubblicare una nuova versione del plugin
 
 I clienti con una licenza attiva vedono il pulsante **Scarica** nella dashboard e ricevono sempre **l'ultima versione** pubblicata.
