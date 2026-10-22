@@ -19,7 +19,7 @@ for lang, words in expect.items():
     check(f"{lang}: 200", r.status_code == 200)
     check(f"{lang}: translated texts", all(w in t for w in words))
     check(f"{lang}: markup rendered, not escaped", "&lt;code&gt;plugins" not in raw and "&lt;b&gt;" not in raw and "<code>plugins/Mythras/license.yml</code>" in raw)
-    check(f"{lang}: commands unchanged", "mlicense MYTH-XXXX-XXXX-XXXX-XXXX" in t and "/ac banwave [list|run|clear]" in t and "%mythras_banwave%" in t)
+    check(f"{lang}: commands unchanged", "mlicense MYTH-XXXX-XXXX-XXXX-XXXX" in t and "/ac ai review" in t and "%mythras_checked%" in t and "banwave" not in t.lower() and "ban wave" not in t.lower())
     check(f"{lang}: all {len(docs.CHECKS)} checks listed", len(re.findall(r'<tr data-plan=', raw)) == len(docs.CHECKS))
 c = m.app.test_client(); c.get("/lang/it")
 t = html.unescape(c.get("/docs").data.decode())

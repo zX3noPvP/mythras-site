@@ -20,7 +20,7 @@ PLAN_MATRIX = [
     ("AI learning", NO, NO, "standard", "advanced + Mythras Cloud AI (global model)"),
     ("Whitelist and exemptions", NO, NO, YES, YES),
     ("Combat mitigations, Anti-ESP (players), Anti-StorageESP (chests and containers), Anti-XRay (ores, also in caves), health filter", NO, NO, YES, YES),
-    ("Cross-server alerts (BungeeCord/Velocity), ban wave, developer API, PlaceholderAPI, Folia", NO, NO, NO, YES),
+    ("Cross-server alerts (BungeeCord/Velocity), developer API, PlaceholderAPI, Folia", NO, NO, NO, YES),
 ]
 
 CATEGORIES = [
@@ -105,7 +105,6 @@ COMMANDS = [
     ("/ac ai status|reset", "AI status, reset the model", "mythras.admin", "Pro+"),
     ("/ac ai label <player> <cheat|legit>", "Train the AI", "mythras.admin", "Enterprise"),
     ("/ac ai review", "Suspects of the last hour with the reasons: open their replays, mark them cheating/legit", "mythras.admin", "Enterprise"),
-    ("/ac banwave [list|run|clear]", "Queued punishments", "mythras.admin", "Enterprise"),
     ("mlicense <key> (console)", "Set the license key", "console only", "all"),
 ]
 

@@ -138,7 +138,7 @@ TIERS = {
             "Advanced AI Learning + Mythras Cloud AI (global model)",
             "Replays kept for 7 days",
             "Unlimited servers (multi-server)",
-            "Cross-server alerts, ban wave, developer API, PlaceholderAPI",
+            "Cross-server alerts, developer API, PlaceholderAPI",
             "Folia support",
             "Dedicated support",
             "Monthly license: buy and renew on Discord",

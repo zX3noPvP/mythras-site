@@ -14,8 +14,6 @@
   <span class="feed-info">
     {% if e.type == 'replay' and (e.info or '').startswith('#') and e.info[1:].isdigit() %}
       <span class="doc-code feed-cmd"><code>/ac replay play {{ e.info[1:] }}</code><button class="doc-copy" type="button" data-copy-code aria-label="{{ _('Copy') }}">{{ icon('copy') }}</button></span>
-    {% elif e.type == 'punish' and e.info == 'ban wave' %}
-      <span class="chip-demo">{{ _("Ban wave") }}</span>
     {% else %}
       <span class="mono small muted">{{ e.info or '' }}</span>
     {% endif %}

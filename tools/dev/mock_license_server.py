@@ -89,7 +89,7 @@ def seed_panel():
                   "uuid": uuid, "check": check, "vl": round(rnd.uniform(1, 40), 1),
                   "info": f"reach={rnd.uniform(3.1, 5):.2f} max=3.25 ping={rnd.randint(0, 120)}"}
             if kind == "punish":
-                ev["info"] = "ban wave" if rnd.random() < 0.3 else "[kick] Unfair advantage"
+                ev["info"] = "[kick] Unfair advantage"
             if kind == "replay":
                 ev["info"] = f"#{rnd.randint(1, 300)}"
                 ev["check"] = check + ", Speed"
