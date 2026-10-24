@@ -43,7 +43,7 @@
         <span><b>{{ DOCS.CHECKS|length }}</b> {{ _("checks") }}</span>
         <span><b>1.21 → 26.x</b> Minecraft</span>
         <span><b>Java 21+</b> {{ _("required") }}</span>
-        <span class="folia-chip">{{ icon('check') }}Folia: Enterprise</span>
+        <span class="folia-chip">{{ icon('check') }}Folia: Pro</span>
       </div>
     </header>
     <p class="doc-noresults muted" id="doc-noresults" hidden>{{ _("No results. Try another word, e.g. a check or a command.") }}</p>
@@ -51,9 +51,9 @@
     <section id="requirements" class="wiki-section doc-section">
       <h2>{{ _("1. Requirements") }}</h2>
       <ul class="wiki-list">
-        <li>{{ _("Paper or Spigot 1.21 or newer (Folia: Enterprise plan only), Java 21+.") }}</li>
+        <li>{{ _("Paper or Spigot 1.21 or newer (Folia: Pro plan only), Java 21+.") }}</li>
         <li>{{ _('<a href="https://modrinth.com/plugin/packetevents" target="_blank" rel="noopener">PacketEvents</a> <b>2.14.0 or newer</b> in <code>plugins/</code>.')|safe }}</li>
-        <li>{{ _("Optional: ViaVersion (older clients), Geyser/Floodgate (Bedrock players), WorldGuard (region exemptions), PlaceholderAPI (placeholders, Enterprise).") }}</li>
+        <li>{{ _("Optional: ViaVersion (older clients), Geyser/Floodgate (Bedrock players), WorldGuard (region exemptions), PlaceholderAPI (placeholders, Pro).") }}</li>
       </ul>
       <div class="table-wrap">
         <table class="table wiki-table">
@@ -61,13 +61,13 @@
           <tbody>
             <tr><th scope="row">{{ _("Paper (and forks such as Purpur)") }}</th><td><span class="yes-text">{{ icon('check') }}{{ _("All plans") }}</span></td></tr>
             <tr><th scope="row">Spigot</th><td><span class="yes-text">{{ icon('check') }}{{ _("All plans") }}</span></td></tr>
-            <tr class="row-folia"><th scope="row">Folia</th><td><span class="yes-text">{{ icon('check') }}</span><span class="badge badge-enterprise">Enterprise</span> {{ _("only") }}</td></tr>
+            <tr class="row-folia"><th scope="row">Folia</th><td><span class="yes-text">{{ icon('check') }}</span><span class="badge badge-pro">Pro</span> {{ _("only") }}</td></tr>
           </tbody>
         </table>
       </div>
       <div class="wiki-callout is-green">
         <h3>{{ icon('check') }}{{ _("Available on Folia too") }}</h3>
-        <p>{{ _("Folia is supported with the Enterprise plan.") }}</p>
+        <p>{{ _("Folia is supported with the Pro plan.") }}</p>
       </div>
     </section>
 
@@ -87,18 +87,18 @@
       <h2>{{ _("3. Plans") }}</h2>
       <div class="table-wrap">
         <table class="table wiki-table doc-plans">
-          <thead><tr><th scope="col"><span class="sr-only">{{ _("Feature") }}</span></th><th scope="col">Free (beta)</th><th scope="col">Base</th><th scope="col">Pro</th><th scope="col">Enterprise</th></tr></thead>
+          <thead><tr><th scope="col"><span class="sr-only">{{ _("Feature") }}</span></th><th scope="col">Free (beta)</th><th scope="col">Pro</th></tr></thead>
           <tbody>
-            {% for label, free, base, pro, ent in DOCS.PLAN_MATRIX %}
-            <tr><th scope="row">{{ _(label) }}</th><td>{{ cell(free) }}</td><td>{{ cell(base) }}</td><td>{{ cell(pro) }}</td><td>{{ cell(ent) }}</td></tr>
+            {% for label, free, pro in DOCS.PLAN_MATRIX %}
+            <tr><th scope="row">{{ _(label) }}</th><td>{{ cell(free) }}</td><td>{{ cell(pro) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-      <p>{{ _("<b>AI learning.</b> The AI looks at 20 combat behaviours every 20 hits (clicks, rotations, aim, reach, target switching) and learns what is normal on your server. Standard (Pro): it learns by itself from punished and clean players, with fixed settings, and only sends alerts. Advanced (Enterprise): every setting can be tuned, staff can train it (<code>/ac ai label</code>), and it can punish.")|safe }}</p>
-      <p>{{ _("<b>Mythras Cloud AI (Enterprise).</b> Every Enterprise server also gets a global model, trained every hour on the combat data of all Enterprise servers. It protects a new server from the first day, before your own AI has learned enough; then the two are combined. The global model is a small neural network when that is more accurate than a simple model, so it also recognises combinations (for example fast turning together with perfectly steady aim). What is shared: 20 numbers per 20 hits (click speed and rhythm, how the view turns, reach, hit ratio, aim steadiness...) and whether the player was punished, never names, UUIDs or IP addresses. <code>ai.cloud.share: false</code> only downloads the model, <code>ai.cloud.enabled: false</code> turns it off. <code>/ac ai status</code> shows the global model.")|safe }}</p>
+      <p>{{ _("<b>AI learning (Pro).</b> The AI looks at 20 combat behaviours every 20 hits (clicks, rotations, aim, reach, target switching) and learns what is normal on your server, from punished and clean players. Every setting can be tuned, staff can train it (<code>/ac ai label</code>), and it punishes only if you allow it.")|safe }}</p>
+      <p>{{ _("<b>Mythras Cloud AI (Pro).</b> Every Pro server also gets a global model, trained every hour on the combat data of all Pro servers. It protects a new server from the first day, before your own AI has learned enough; then the two are combined. The global model is a small neural network when that is more accurate than a simple model, so it also recognises combinations (for example fast turning together with perfectly steady aim). What is shared: 20 numbers per 20 hits (click speed and rhythm, how the view turns, reach, hit ratio, aim steadiness...) and whether the player was punished, never names, UUIDs or IP addresses. <code>ai.cloud.share: false</code> only downloads the model, <code>ai.cloud.enabled: false</code> turns it off. <code>/ac ai status</code> shows the global model.")|safe }}</p>
       <p>{{ _("<b>Why the AI flagged someone.</b> Every AI alert says why, for example <code>combat model 95% cheating: very regular clicks, aim locked on the body</code>: the behaviours that are most unusual compared to the normal players of your server. You see it in the alert, in <code>/ac info &lt;player&gt;</code> and in the replay.")|safe }}</p>
-      <p>{{ _("<b>Reviewing suspects (Enterprise).</b> <code>/ac ai review</code> opens the list of players the AI found suspicious in the last hour, also if they already left. Left click opens their replays; right click = cheating, shift + click = legit. Your verdict teaches the AI (on your server and, with Cloud AI, everywhere), so it gets better the more you use it.")|safe }}</p>
+      <p>{{ _("<b>Reviewing suspects (Pro).</b> <code>/ac ai review</code> opens the list of players the AI found suspicious in the last hour, also if they already left. Left click opens their replays; right click = cheating, shift + click = legit. Your verdict teaches the AI (on your server and, with Cloud AI, everywhere), so it gets better the more you use it.")|safe }}</p>
       <p>{{ _("Bedrock players (Geyser) are never judged by the AI: touch controls and aim assist would look like cheating.") }}</p>
       <p>{{ _("The Free plan only sends alerts to staff: no setbacks, no punishments.") }}</p>
       <p><a class="btn btn-outline btn-sm" href="{{ url_for('index') }}#pricing">{{ _("Pricing") }}</a></p>
@@ -182,32 +182,32 @@
         <li>{{ _("<code>language</code>: <code>en</code>, <code>it</code>, <code>es</code>, <code>pt</code>, <code>de</code>, <code>fr</code>, <code>pl</code> or <code>zh</code> (or change it in game with <code>/ac lang &lt;code&gt;</code>).")|safe }}</li>
         <li>{{ _("<code>database.type</code>: <code>file</code> (default), <code>sqlite</code>, <code>mysql</code>, <code>mongodb</code>. If the connection fails Mythras falls back to <code>file</code>.")|safe }}</li>
         <li>{{ _("<code>alerts</code>: alerts in chat and console, <code>cooldown-ms</code>, <code>click-command</code>.")|safe }}</li>
-        <li>{{ _("<code>exemptions</code> (Pro+): whitelist and exemptions. <code>players</code> (names or UUIDs), <code>worlds</code> and WorldGuard <code>regions</code> where no check runs (staff, minigames, launch pads).")|safe }}</li>
+        <li>{{ _("<code>exemptions</code> (Pro): whitelist and exemptions. <code>players</code> (names or UUIDs), <code>worlds</code> and WorldGuard <code>regions</code> where no check runs (staff, minigames, launch pads).")|safe }}</li>
         <li>{{ _("<code>bedrock</code>: checks used on Bedrock players (Geyser).")|safe }}</li>
         <li>{{ _("<code>checks.&lt;name&gt;</code>: every check has:")|safe }}
           <ul>
             <li><code>enabled</code>;</li>
             <li>{{ _("<code>buffer</code>: how many proofs are needed before a flag (higher = fewer false flags);")|safe }}</li>
             <li>{{ _("<code>vl-weight</code> and <code>vl-decay-per-second</code>;")|safe }}</li>
-            <li>{{ _("<code>punish-vl</code>: VL that runs the punishment, 0 = alerts only (Base+);")|safe }}</li>
-            <li>{{ _("<code>punish-commands</code>: punishment commands for this check only (Base+).")|safe }}</li>
+            <li>{{ _("<code>punish-vl</code>: VL that runs the punishment, 0 = alerts only (Pro);")|safe }}</li>
+            <li>{{ _("<code>punish-commands</code>: punishment commands for this check only (Pro).")|safe }}</li>
           </ul>
         </li>
-        <li>{{ _("<code>punishments.commands</code> (Base+): <code>[kick] &lt;message&gt;</code>, <code>[message] &lt;text&gt;</code> or any console command, for example <code>ban %player% 7d Cheating</code>. Placeholders: <code>%player%</code>, <code>%check%</code>, <code>%vl%</code>, <code>%kick-message%</code>.")|safe }}</li>
-        <li>{{ _("<code>setback</code> (Base+): pulls the cheater back to the last valid position.")|safe }}</li>
-        <li>{{ _("<code>discord</code> (Base+): webhook for alerts and punishments.")|safe }}</li>
-        <li>{{ _("<code>mitigations</code> (Pro+): cancels impossible hits, halves damage after combat flags, health filter, Anti-ESP, and")|safe }}
+        <li>{{ _("<code>punishments.commands</code> (Pro): <code>[kick] &lt;message&gt;</code>, <code>[message] &lt;text&gt;</code> or any console command, for example <code>ban %player% 7d Cheating</code>. Placeholders: <code>%player%</code>, <code>%check%</code>, <code>%vl%</code>, <code>%kick-message%</code>.")|safe }}</li>
+        <li>{{ _("<code>setback</code> (Pro): pulls the cheater back to the last valid position.")|safe }}</li>
+        <li>{{ _("<code>discord</code> (Pro): webhook for alerts and punishments.")|safe }}</li>
+        <li>{{ _("<code>mitigations</code> (Pro): cancels impossible hits, halves damage after combat flags, health filter; with the add-ons also:")|safe }}
           <ul>
-            <li>{{ _("<code>anti-storage-esp</code>: containers the player cannot see are sent as the block next to them, so StorageESP/ChestESP show nothing behind walls (<code>blocks</code> = which containers);")|safe }}</li>
-            <li>{{ _("<code>anti-xray</code>: ores out of sight are sent as rock, also those open to caves, until the player can see them (<code>blocks</code>, <code>max-y</code>, <code>max-distance</code>). It replaces Paper's anti-xray, which you can leave off.")|safe }}</li>
+            <li>{{ _("<code>anti-esp</code> and <code>anti-storage-esp</code> (Anti-ESP add-on): players and containers the player cannot see are not sent, so ESP, tracers and StorageESP show nothing behind walls (<code>blocks</code> = which containers);")|safe }}</li>
+            <li>{{ _("<code>anti-xray</code> (Anti-XRay add-on): ores out of sight are sent as rock, also those open to caves, until the player can see them (<code>blocks</code>, <code>max-y</code>, <code>max-distance</code>). It replaces Paper's anti-xray, which you can leave off.")|safe }}</li>
             <li>{{ _("Anti-ESP works on its own thread, so it costs almost nothing on the main thread. Walls changed by commands or WorldEdit (no block event) are noticed within 3 seconds; walls broken, placed or blown up by players at once.") }}</li>
           </ul>
         </li>
-        <li>{{ _("<code>replay</code> (Pro+): <code>mode: flag</code> records flagged players, <code>mode: always</code> keeps the last 25 seconds of everyone. <code>keep-days</code>: how long replays are kept (at most 7 days: older ones are deleted).")|safe }}</li>
-        <li>{{ _("<code>ai</code> (Pro+): self-learning model. Enterprise can also tune it and train it with staff labels (<code>/ac ai label</code>).")|safe }} {{ _("<code>ai.cloud</code> (Enterprise): Mythras Cloud AI, <code>enabled</code> and <code>share</code> (see Plans).")|safe }}</li>
-        <li>{{ _("<code>checks.freecam</code> (Base+): clicks on blocks hidden behind walls (FreeCam, GhostHand) are refused with <code>cancel: true</code> (a chest behind a wall stays closed) and flagged.")|safe }}</li>
-        <li>{{ _("<code>checks.xray</code> (Base+): <code>min-veins</code>, <code>max-stone-per-vein</code>, <code>window-minutes</code>, <code>ores</code>. Alerts only by default: check the player's replay before punishing. Paper's anti-xray (<code>engine-mode: 2</code> in <code>paper-world-defaults.yml</code>) works well together with it.")|safe }}</li>
-        <li>{{ _("<code>network</code> (Enterprise): alerts of all servers behind BungeeCord/Velocity.")|safe }}</li>
+        <li>{{ _("<code>replay</code> (Pro): <code>mode: flag</code> records flagged players, <code>mode: always</code> keeps the last 25 seconds of everyone. <code>keep-days</code>: how long replays are kept (at most 7 days: older ones are deleted).")|safe }}</li>
+        <li>{{ _("<code>ai</code> (Pro): self-learning model; tune it and train it with staff labels (<code>/ac ai label</code>).")|safe }} {{ _("<code>ai.cloud</code> (Pro): Mythras Cloud AI, <code>enabled</code> and <code>share</code> (see Plans).")|safe }}</li>
+        <li>{{ _("<code>checks.freecam</code> (Pro): clicks on blocks hidden behind walls (FreeCam, GhostHand) are refused with <code>cancel: true</code> (a chest behind a wall stays closed) and flagged.")|safe }}</li>
+        <li>{{ _("<code>checks.xray</code> (Pro): <code>min-veins</code>, <code>max-stone-per-vein</code>, <code>window-minutes</code>, <code>ores</code>. Alerts only by default: check the player's replay before punishing. Paper's anti-xray (<code>engine-mode: 2</code> in <code>paper-world-defaults.yml</code>) works well together with it.")|safe }}</li>
+        <li>{{ _("<code>network</code> (Pro): alerts of all servers behind BungeeCord/Velocity.")|safe }}</li>
       </ul>
       <div class="wiki-callout">
         <h3>{{ icon('check') }}{{ _("Tip") }}</h3>
@@ -216,7 +216,7 @@
     </section>
 
     <section id="api" class="wiki-section doc-section">
-      <h2>{{ _("8. Developer API and placeholders") }} <span class="badge badge-enterprise">Enterprise</span></h2>
+      <h2>{{ _("8. Developer API and placeholders") }} <span class="badge badge-pro">Pro</span></h2>
       <ul class="wiki-list">
         <li>{{ _("Events: <code>MythrasFlagEvent</code> (cancellable flag) and <code>MythrasPunishEvent</code> (cancellable punishment).")|safe }}</li>
         <li>{{ _("<code>MythrasAPI.get()</code> methods:")|safe }}
@@ -239,9 +239,9 @@
     <section id="news" class="wiki-section doc-section">
       <h2>{{ _("9. What's new") }}</h2>
       <ul class="wiki-list">
-        <li>{{ _("<b>1.15</b>: the AI looks at 20 behaviours instead of 12; every AI alert says why; <code>/ac ai review</code> (Enterprise) to judge the suspects of the last hour; Mythras Cloud AI uses a neural network when it is more accurate. Your AI keeps what it already learned.")|safe }}</li>
+        <li>{{ _("<b>1.15</b>: the AI looks at 20 behaviours instead of 12; every AI alert says why; <code>/ac ai review</code> (Pro) to judge the suspects of the last hour; Mythras Cloud AI uses a neural network when it is more accurate. Your AI keeps what it already learned.")|safe }}</li>
         <li>{{ _("<b>1.14.1 / 1.14.2</b>: performance: Anti-ESP on its own thread, lighter work per player (the main-thread time of Mythras is about a third of before).")|safe }}</li>
-        <li>{{ _("<b>1.14</b>: Mythras Cloud AI (Enterprise): a global model trained on all Enterprise servers, active from the first day.")|safe }}</li>
+        <li>{{ _("<b>1.14</b>: Mythras Cloud AI (Pro): a global model trained on all Pro servers, active from the first day.")|safe }}</li>
       </ul>
     </section>
 
@@ -251,7 +251,7 @@
         <dt>{{ _("A legit player gets flagged.") }}</dt>
         <dd>{{ _("Use <code>/ac info &lt;player&gt;</code> and <code>/ac debug &lt;player&gt;</code>, then send us the check name, the details of the alert, the client and the version. Meanwhile raise that check's <code>buffer</code> or set its <code>punish-vl: 0</code>.")|safe }}</dd>
         <dt>{{ _("A plugin launches players (launch pads, knockback, custom elytra).") }}</dt>
-        <dd>{{ _("Add the world or region to <code>exemptions</code> (Pro+), or call <code>MythrasAPI.get().exempt(player, millis)</code> from your plugin (Enterprise).")|safe }}</dd>
+        <dd>{{ _("Add the world or region to <code>exemptions</code> (Pro), or call <code>MythrasAPI.get().exempt(player, millis)</code> from your plugin (Pro).")|safe }}</dd>
         <dt>{{ _('The console says "License key refused".') }}</dt>
         <dd>{{ _("The message says why:") }}
           <ul class="wiki-list">
@@ -265,7 +265,7 @@
         <dt>{{ _("Does Mythras lag the server?") }}</dt>
         <dd>{{ _("No: checks run on the network threads, Anti-ESP and the AI on their own threads. With 100 players fighting, Mythras uses about 0.3 ms of the 50 ms of a tick. <code>/ac perf</code> shows how much time Mythras uses per tick on your server.")|safe }}</dd>
         <dt>{{ _("The AI flagged a legit player.") }}</dt>
-        <dd>{{ _("Open <code>/ac ai review</code> (Enterprise) and shift + click the player: their fights are taught to the AI as legit. On Pro, the AI only sends alerts and never punishes. The alert says why it flagged (for example <code>very regular clicks</code>): send it to us with the player's client if it keeps happening.")|safe }}</dd>
+        <dd>{{ _("Open <code>/ac ai review</code> and shift + click the player: their fights are taught to the AI as legit. Unless you allow it, the AI only sends alerts and never punishes. The alert says why it flagged (for example <code>very regular clicks</code>): send it to us with the player's client if it keeps happening.")|safe }}</dd>
         <dt>{{ _("Support") }}</dt>
         <dd>{{ _("Open a ticket on our Discord server with your key (only the first part, e.g. <code>MYTH-ABCD-…</code>), server version, Mythras version and the console log.")|safe }}{% if SUPPORT_DISCORD %} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Discord server") }}</a>{% endif %}</dd>
       </dl>

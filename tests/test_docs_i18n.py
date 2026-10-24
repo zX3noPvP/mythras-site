@@ -8,7 +8,7 @@ fails = []
 def check(n, c):
     print(("PASS " if c else "FAIL ") + n)
     if not c: fails.append(n)
-expect = {"en": ["9. What's new", "Mythras Cloud AI (Enterprise)", "/ac ai review", "/ac lang [code]", "/ac settings", "1. Requirements", "Mythras: customer guide", "Turn your alerts on/off", "Hits from too far away"],
+expect = {"en": ["9. What's new", "Mythras Cloud AI (Pro)", "/ac ai review", "/ac lang [code]", "/ac settings", "1. Requirements", "Mythras: customer guide", "Turn your alerts on/off", "Hits from too far away"],
           "it": ["9. Novità", "Revisione dei sospetti", "Mostra o cambia la lingua", "1. Requisiti", "Mythras: guida per i clienti", "Attiva/disattiva i tuoi alert", "Colpi da troppo lontano", "Cerca nei Docs", "Per usare il tuo piano"],
           "de": ["1. Voraussetzungen", "Kundenanleitung", "Deine Alarme ein/aus"],
           "fr": ["1. Prérequis", "guide client", "Activer/désactiver tes alertes"],

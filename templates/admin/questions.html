@@ -8,15 +8,15 @@
     <div>
       <p class="kicker">Admin</p>
       <h1>{{ _("Setup questions") }}</h1>
-      <p class="muted small">{{ _("Each plan sees its questions and those of the plans below. The config key tells the plugin which option the answer sets; keys starting with info. are only shown to you.") }}</p>
+      <p class="muted small">{{ _("Free questions are asked to everyone, Pro questions to Pro keys, add-on questions only to keys with that add-on. The config key tells the plugin which option the answer sets; keys starting with info. are only shown to you.") }}</p>
     </div>
     <a class="btn btn-primary" href="{{ url_for('admin_question', qid='new') }}">{{ icon('plus') }}{{ _("New question") }}</a>
   </header>
   {{ admin_nav('questions') }}
 
-  {% for plan in ('base', 'pro', 'enterprise') %}
+  {% for plan in ('free', 'pro', 'antixray', 'antiesp') %}
   <section class="panel">
-    <div class="panel-head"><h2><span class="badge badge-{{ plan }}">{{ plan|plan_name }}</span></h2></div>
+    <div class="panel-head"><h2>{% if plan in ADDONS %}<span class="badge badge-addon">{{ _("Add-on") }}: {{ plan|plan_name }}</span>{% else %}<span class="badge badge-{{ plan }}">{{ plan|plan_name }}</span>{% endif %}</h2></div>
     <div class="table-wrap">
       <table class="table">
         <thead><tr><th scope="col">#</th><th scope="col">{{ _("Question") }}</th><th scope="col">{{ _("Type") }}</th><th scope="col">{{ _("Default") }}</th><th scope="col">{{ _("Config key") }}</th><th scope="col"><span class="sr-only">{{ _("Actions") }}</span></th></tr></thead>

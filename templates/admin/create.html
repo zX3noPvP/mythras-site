@@ -20,7 +20,7 @@
       <button class="btn btn-primary" type="button" data-copy>{{ icon('copy') }}{{ _("Copy") }}</button>
     </div>
     <dl class="license-meta">
-      <div><dt>{{ _("Plan") }}</dt><dd>{{ created.plan|plan_name }}</dd></div>
+      <div><dt>{{ _("Plan") }}</dt><dd>{{ created.plan|plan_name }}{{ created.addons|addon_badges }}</dd></div>
       <div><dt>{{ _("Expires") }}</dt><dd>{{ created.expires|ms_date }}</dd></div>
       <div><dt>{{ _("Servers") }}</dt><dd>{{ _("Unlimited") if created.maxServers == 0 else created.maxServers }}</dd></div>
     </dl>
@@ -45,6 +45,10 @@
           {% endfor %}
         </select>
       </label>
+      <fieldset class="addon-picks">
+        <legend>{{ _("Add-ons") }}</legend>
+        {% for a, addon in ADDONS.items() %}<label class="check"><input type="checkbox" name="addons" value="{{ a }}" {% if a in (form.addons or []) %}checked{% endif %}> {{ addon.name }}</label>{% endfor %}
+      </fieldset>
       <label>{{ _("Days") }}
         <input name="days" value="{{ form.days if 'days' in form else '30' }}" inputmode="numeric" pattern="[0-9]*" placeholder="{{ _('Empty = 1 month, 0 = never expires') }}">
       </label>

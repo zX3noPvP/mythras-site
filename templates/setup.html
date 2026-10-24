@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container setup-page">
   <header class="setup-head">
-    <p class="kicker"><span class="kicker-dot"></span>{{ _("Setup") }} · <span class="badge badge-{{ invite.plan }}">{{ invite.plan|plan_name }}</span></p>
+    <p class="kicker"><span class="kicker-dot"></span>{{ _("Setup") }} · <span class="badge badge-{{ invite.plan }}">{{ invite.plan|plan_name }}</span>{{ addons|addon_badges }}</p>
     <h1>{{ _("Set up Mythras for your server") }}</h1>
     <p class="muted">{{ _("Answer these questions once: we prepare the plugin configuration for your license. You can change everything later in game with /ac settings or in config.yml.") }}</p>
     <p class="muted small">{{ icon('shield') }} {{ _("This link works only once.") }}</p>
@@ -19,7 +19,7 @@
     {% set default = lang if key == 'language' and lang in q.options|map('first')|list else q.default_value %}
     {% set current = values.get(key, default) if values else default %}
     <fieldset class="setup-q{% if errors.get(key) %} has-error{% endif %}" {% if q.show_if %}data-show-if="{{ q.show_if }}"{% endif %}>
-      <legend>{{ _(q.label) }}{% if q.plan != 'base' %} <span class="badge badge-{{ q.plan }}">{{ q.plan|plan_name }}</span>{% endif %}</legend>
+      <legend>{{ _(q.label) }}{% if q.plan in ADDONS %} <span class="badge badge-addon">{{ q.plan|plan_name }}</span>{% elif q.plan != 'free' %} <span class="badge badge-{{ q.plan }}">{{ q.plan|plan_name }}</span>{% endif %}</legend>
       {% if q.help %}<p class="muted small">{{ _(q.help) }}</p>{% endif %}
       {% if q.warning %}<p class="setup-warn small">⚠ {{ _(q.warning) }}</p>{% endif %}
 

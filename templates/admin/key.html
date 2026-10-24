@@ -14,7 +14,7 @@
     </div>
     {% if k %}
     <div class="head-badges">
-      <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>
+      <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>{{ k.addons|addon_badges }}
       {{ status_badge(k.status) }}
     </div>
     {% endif %}
@@ -85,6 +85,16 @@
           <select name="plan" id="plan-select">
             {% for p in plans.plans %}<option value="{{ p.plan }}" {% if p.plan == k.plan %}selected{% endif %}>{{ p.plan|plan_name }}</option>{% endfor %}
           </select>
+          <button class="btn btn-outline" type="submit">{{ _("Save") }}</button>
+        </form>
+      </div>
+
+      <div class="action">
+        <h3>{{ _("Add-ons") }}</h3>
+        <p class="muted small">{{ _("Anti-XRay and Anti-ESP work only on keys with the add-on. Applies at the server's next restart.") }}</p>
+        <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='addons') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          {% for a, addon in ADDONS.items() %}<label class="check"><input type="checkbox" name="addons" value="{{ a }}" {% if a in (k.addons or []) %}checked{% endif %}> {{ addon.name }}</label>{% endfor %}
           <button class="btn btn-outline" type="submit">{{ _("Save") }}</button>
         </form>
       </div>

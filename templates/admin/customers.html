@@ -42,7 +42,7 @@
               <span class="key-row"><code class="mono small">{{ u.discord_id }}</code><button class="icon-btn" type="button" data-copy-code aria-label="{{ _('Copy') }}">{{ icon('copy') }}</button></span>
             </td>
             <td class="small">
-              {% for k in ks %}<a class="mono" href="{{ url_for('admin_key', key=k.key) }}">{{ k.key[:9] }}…</a> <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span> {{ status_badge(k.status) }}<br>{% else %}<span class="muted">—</span>{% endfor %}
+              {% for k in ks %}<a class="mono" href="{{ url_for('admin_key', key=k.key) }}">{{ k.key[:9] }}…</a> <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>{{ k.addons|addon_badges }} {{ status_badge(k.status) }}<br>{% else %}<span class="muted">—</span>{% endfor %}
             </td>
             <td class="small nowrap">{{ (u.last_login or u.created_at)|date }}</td>
             <td class="row-actions"><a class="btn btn-outline btn-sm" href="{{ url_for('admin_new_key', owner=u.discord_id) }}">{{ icon('key') }}{{ _("Create license") }}</a></td>

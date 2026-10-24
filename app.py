@@ -80,10 +80,10 @@ LEGAL_VAT = os.getenv("LEGAL_VAT", "")  # partita IVA, shown in the footer and o
 KEY_RE = re.compile(r"^[A-Z0-9][A-Z0-9-]{3,63}$")
 DISCORD_ID_RE = re.compile(r"^\d{17,20}$")
 KEY_STATUSES = ("active", "revoked", "expired")
-DEFAULT_PLANS = [{"plan": "base"}, {"plan": "pro"}, {"plan": "enterprise"}]
+DEFAULT_PLANS = [{"plan": "pro"}]
 DAY_MS = 86_400_000
 
-# Marketing copy for the pricing page. Prices and features are placeholders: edit them here.
+# Marketing copy for the pricing page. Prices and features: edit them here.
 TIERS = {
     "free": {
         "name": "Free",
@@ -95,60 +95,56 @@ TIERS = {
             "Basic movement checks: Speed, Flight/NoFall, Jesus",
             "Crash and BadPackets protection",
             "Alerts only: no setbacks, no punishments",
+            "Add-ons available",
             "Community support",
-        ],
-    },
-    "base": {
-        "name": "Base",
-        "price": "€9.99",
-        "period": "per month",
-        "description": "Essential protection for growing servers.",
-        "features": [
-            "Complete movement checks",
-            "Reach, hitbox and X-Ray checks",
-            "World and protocol checks: FreeCam, Scaffold, FastPlace and more",
-            "Setbacks, automatic punishments, staff GUI, Discord webhook",
-            "1 server",
-            "Email support",
-            "Monthly license: buy and renew on Discord",
         ],
     },
     "pro": {
         "name": "Pro",
-        "price": "€24.99",
+        "price": "€19.99",
         "period": "per month",
-        "description": "Advanced detection for competitive servers.",
+        "description": "Every check and every feature of Mythras, for any server.",
         "features": [
-            "All Base checks",
-            "KillAura, autoclicker and timer checks",
-            "AI Learning (adaptive false-positive filtering)",
+            "All checks: movement, combat, Crystal PvP, world and protocol",
+            "Setbacks, automatic punishments, staff GUI, Discord webhook",
+            "AI Learning + Mythras Cloud AI (global model)",
             "Replays kept for 7 days",
-            "Whitelist and exemptions",
-            "Anti-ESP, Anti-StorageESP, Anti-XRay and combat mitigations",
-            "1 server",
+            "Whitelist and exemptions, combat mitigations, health filter",
+            "Folia, cross-server alerts, developer API, PlaceholderAPI",
+            "Unlimited servers (multi-server)",
+            "Add-ons available",
             "Priority support",
             "Monthly license: buy and renew on Discord",
         ],
     },
-    "enterprise": {
-        "name": "Enterprise",
-        "price": "€79.99",
+}
+
+# Add-ons: bought on top of Free or Pro, each a monthly license on the same key.
+ADDONS = {
+    "antixray": {
+        "name": "Anti-XRay",
+        "price": "€5.99",
         "period": "per month",
-        "lifetime_price": "€150",
-        "description": "Maximum protection for networks and large communities.",
+        "description": "Ores out of sight are sent as rock, also those open to caves, until the player can see them.",
         "features": [
-            "All Pro checks",
-            "Aim, Mace, Backtrack, AimBow and Crystal PvP checks",
-            "Advanced AI Learning + Mythras Cloud AI (global model)",
-            "Replays kept for 7 days",
-            "Unlimited servers (multi-server)",
-            "Cross-server alerts, developer API, PlaceholderAPI",
-            "Folia support",
-            "Dedicated support",
-            "Monthly license: buy and renew on Discord",
+            "Hides ores behind walls and in caves",
+            "Works with Free and Pro",
+            "Height and blocks configurable",
+        ],
+    },
+    "antiesp": {
+        "name": "Anti-ESP",
+        "price": "€5.99",
+        "period": "per month",
+        "description": "Players and containers behind walls are not sent: ESP, tracers, chams, radar and StorageESP see nothing.",
+        "features": [
+            "Hides players behind walls (Anti-ESP)",
+            "Hides chests and containers behind walls (Anti-StorageESP)",
+            "Works with Free and Pro",
         ],
     },
 }
+ADDON_IDS = tuple(ADDONS)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -561,7 +557,30 @@ def format_ago(value):
 
 @app.template_filter("plan_name")
 def plan_name(plan):
-    return TIERS.get(plan, {}).get("name") or str(plan or "").title()
+    return TIERS.get(plan, {}).get("name") or ADDONS.get(plan, {}).get("name") or str(plan or "").title()
+
+
+def addon_list(value):
+    """Add-ons of a key or setup link: a list from the license server, or JSON text from the site DB."""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value or "[]")
+        except ValueError:
+            return []
+    return [a for a in (value or []) if a in ADDONS]
+
+
+@app.template_filter("addon_badges")
+def addon_badges(value):
+    return Markup("".join(f' <span class="badge badge-addon">+ {Markup.escape(ADDONS[a]["name"])}</span>'
+                          for a in addon_list(value)))
+
+
+def addons_from_form(form):
+    picked = form.getlist("addons")
+    if any(a not in ADDONS for a in picked):
+        raise ValueError("Choose valid add-ons.")
+    return sorted(set(picked))
 
 
 @app.context_processor
@@ -580,6 +599,7 @@ def inject_globals():
         "LEGAL_EMAIL": LEGAL_EMAIL,
         "LEGAL_VAT": LEGAL_VAT,
         "TIERS": TIERS,
+        "ADDONS": ADDONS,
         "SUPPORT_DISCORD": SUPPORT_DISCORD,
         "FREE_LINKS": FREE_LINKS,
     }
@@ -917,7 +937,8 @@ def setup_page(token):
         return render_template("error.html", code=410, message=messages.get(state, t("This setup link is not valid."))), 410
     if invite["discord_id"] and invite["discord_id"] != user["discord_id"]:
         return render_template("error.html", code=403, message=t("This setup link is for another Discord account.")), 403
-    questions = setup_forms.questions_for(db, invite["plan"])
+    addons = setup_forms.invite_addons(invite)
+    questions = setup_forms.questions_for(db, invite["plan"], addons)
     values, errors = {}, {}
     if request.method == "POST":
         answers, errors = setup_forms.validate(questions, request.form)
@@ -926,9 +947,9 @@ def setup_page(token):
             if not setup_forms.consume_invite(db, invite, user["discord_id"]):
                 return render_template("error.html", code=410, message=t("This setup link was already used. Ask for a new one on our Discord server.")), 410
             cur = db.execute(
-                "INSERT INTO setup_answers (token_hash, discord_id, plan, license_key, answers, server_ip, created_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (invite["token_hash"], user["discord_id"], invite["plan"], invite["license_key"],
+                "INSERT INTO setup_answers (token_hash, discord_id, plan, addons, license_key, answers, server_ip,"
+                " created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (invite["token_hash"], user["discord_id"], invite["plan"], json.dumps(addons), invite["license_key"],
                  json.dumps(answers), answers.get("info.server_ip"), now_iso()),
             )
             db.commit()
@@ -937,7 +958,7 @@ def setup_page(token):
                 applied = apply_setup(db, cur.lastrowid, invite["license_key"], f"website: {user['username']} (setup)") is None
             log.info("Setup answers %s from %s (%s)", cur.lastrowid, user["discord_id"], invite["plan"])
             return render_template("setup_done.html", applied=applied, plan=invite["plan"])
-    return render_template("setup.html", invite=invite, questions=questions, values=values, errors=errors)
+    return render_template("setup.html", invite=invite, addons=addons, questions=questions, values=values, errors=errors)
 
 
 @app.get("/admin/invites")
@@ -967,7 +988,8 @@ def admin_create_invite():
             raise ValueError("Owner must be a Discord user ID (17-20 digits), or empty to remove.")
         hours = parse_int(form.get("hours"), 1, "Enter a number of hours.", maximum=24 * 60, default=168)
         token = setup_forms.create_invite(get_db(), form.get("plan", ""), actor_name(), license_key=key,
-                                          discord_id=owner or None, note=form.get("note", ""), hours=hours)
+                                          discord_id=owner or None, note=form.get("note", ""), hours=hours,
+                                          addons=form.getlist("addons"))
     except ValueError as err:
         flash(t(str(err)), "error")
         return redirect(url_for("admin_invites"))
@@ -1052,7 +1074,7 @@ def question_from_form(form):
     label = form.get("label", "").strip()[:200]
     if kind not in setup_forms.KINDS:
         raise ValueError("Choose a valid answer type.")
-    if plan not in setup_forms.PLANS:
+    if plan not in setup_forms.REQUIREMENTS:
         raise ValueError("Choose a valid plan.")
     if not setup_forms.CONFIG_KEY_RE.match(key):
         raise ValueError("The config key can use lowercase letters, numbers, dots, - and _ only.")
@@ -1159,13 +1181,17 @@ def bot_create_invite():
         return jsonify(ok=False, error="discord_id must be a Discord user ID"), 400
     if body.get("key") and not key:
         return jsonify(ok=False, error="invalid key"), 400
+    addons = body.get("addons") or []
     try:
+        if not isinstance(addons, list):
+            raise ValueError
         hours = int(body.get("hours") or 168)
         token_value = setup_forms.create_invite(get_db(), str(body.get("plan") or ""), "Discord bot",
                                                 license_key=key, discord_id=owner or None,
-                                                note=str(body.get("note") or ""), hours=hours)
+                                                note=str(body.get("note") or ""), hours=hours,
+                                                addons=[str(a) for a in addons])
     except (ValueError, TypeError):
-        return jsonify(ok=False, error="plan must be base, pro or enterprise; hours a number"), 400
+        return jsonify(ok=False, error="plan must be free or pro, addons a list of antixray/antiesp, hours a number"), 400
     log.info("Setup invite (%s) created by the Discord bot", body.get("plan"))
     return jsonify(ok=True, url=setup_link(token_value))
 
@@ -1611,17 +1637,19 @@ def admin_create_key():
         if owner and not DISCORD_ID_RE.match(owner):
             raise ValueError("Owner must be a Discord user ID (17-20 digits).")
         note = form.get("note", "").strip()[:500]
+        addons = addons_from_form(form)
         created = mythras_api.create_key(
-            plan, days=days, servers=servers, note=note, owner=owner, actor=actor_name()
+            plan, days=days, servers=servers, note=note, owner=owner, actor=actor_name(), addons=addons
         )
     except (ValueError, MythrasError) as err:
         flash(err.message if isinstance(err, MythrasError) else t(str(err)), "error")
         session["create_form"] = {k: form.get(k, "")[:500] for k in ("plan", "days", "servers", "owner", "note")}
+        session["create_form"]["addons"] = [a for a in form.getlist("addons") if a in ADDONS]
         return redirect(url_for("admin_new_key"))
     log.info("Key %s created by %s", created["key"], actor_name())
     # PRG: show the new key once on the next GET, so a refresh can't create a second key
     session["created_key"] = {
-        k: created.get(k) for k in ("key", "plan", "expires", "owner", "maxServers", "note")
+        k: created.get(k) for k in ("key", "plan", "addons", "expires", "owner", "maxServers", "note")
     }
     return redirect(url_for("admin_new_key"))
 
@@ -1660,8 +1688,9 @@ ACTION_MESSAGES = {
     "servers": "Server limit updated.",
     "note": "Note saved.",
     "owner": "Owner updated.",
+    "addons": "Add-ons updated. They apply at the server's next restart.",
 }
-SENSITIVE_ACTIONS = {"revoke", "plan", "ips"}
+SENSITIVE_ACTIONS = {"revoke", "plan", "ips", "addons"}
 
 
 @app.post("/admin/keys/<key>/<action>")
@@ -1682,6 +1711,8 @@ def admin_key_action(key, action):
             if plan not in plan_ids():
                 raise ValueError("Choose a valid plan.")
             fields["plan"] = plan
+        elif action == "addons":
+            fields["addons"] = addons_from_form(form)
         elif action == "renew":
             fields["months"] = 1
         elif action == "extend":

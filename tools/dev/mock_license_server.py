@@ -9,7 +9,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 TOKEN = "test-token"
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5055
 DAY = 86_400_000
-PLANS = {"base": 1, "pro": 3, "enterprise": 0}
+PLANS = {"free": 1, "pro": 0}
+ADDONS = ("antixray", "antiesp")
 RESET_HOURS = 24
 now = lambda: int(time.time() * 1000)
 
@@ -38,6 +39,7 @@ def view(k, admin=True, detail=False):
         "customMaxServers": k["custom"], "activeServers": sum(1 for s in k["servers"] if s["active"]),
         "nextReset": k["nextReset"],
         "ips": list(k.get("ips") or []),
+        "addons": list(k.get("addons") or []),
     }
     if admin:
         out["config"] = dict(k.get("config") or {})
@@ -49,12 +51,13 @@ def view(k, admin=True, detail=False):
 def seed():
     for plan, owner, note, servers in [
         ("pro", "100000000000000002", "Order #42", 2),
-        ("base", None, "Unsold", 0),
-        ("enterprise", "100000000000000001", "Network", 4),
+        ("free", None, "Unsold", 0),
+        ("pro", "100000000000000001", "Network", 4),
     ]:
         kid = new_key_id()
         keys[kid] = {"key": kid, "plan": plan, "status": "active", "note": note, "created": now() - 20 * DAY,
-                     "expires": 0 if plan != "base" else now() + 30 * DAY, "owner": owner, "custom": -1,
+                     "expires": 0 if note != "Unsold" else now() + 30 * DAY, "owner": owner, "custom": -1,
+                     "addons": ["antixray"] if note == "Unsold" else (["antixray", "antiesp"] if note == "Network" else []),
                      "nextReset": 0, "servers": [
                          {"server": f"edc5b4e1-{i:04d}-4c2b-9f1a-{kid[-4:]}", "firstSeen": now() - 10 * DAY,
                           "lastSeen": now() - i * 3_600_000, "active": i < 2, "version": "1.0.0", "ip": f"10.0.0.{i + 1}"}
@@ -237,11 +240,14 @@ class Handler(BaseHTTPRequestHandler):
         if path == ["api", "keys"] and method == "POST":
             if body.get("plan") not in PLANS:
                 return self.fail("Unknown plan")
+            if any(a not in ADDONS for a in body.get("addons") or []):
+                return self.fail("Unknown add-on")
             kid = new_key_id()
             days = 30 if body.get("days") in (None, "") else body["days"]
             keys[kid] = {"key": kid, "plan": body["plan"], "status": "active", "note": body.get("note", ""), "created": now(),
                          "expires": now() + days * DAY if days else 0, "owner": body.get("owner") or None,
-                         "custom": -1 if body.get("servers") in (None, "") else body["servers"], "nextReset": 0, "servers": []}
+                         "custom": -1 if body.get("servers") in (None, "") else body["servers"], "nextReset": 0, "servers": [],
+                         "addons": sorted(set(body.get("addons") or []))}
             log(actor, "create", "Key created", kid, f"{body['plan']}, {days or 'no'} days")
             return self.ok(key=view(keys[kid], detail=True))
         if len(path) == 4 and path[:2] == ["api", "owners"] and path[3] == "delete" and method == "POST":
@@ -281,6 +287,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self.fail("Unknown plan")
                 k["plan"] = body["plan"]
                 log(actor, "plan", "Plan changed", k["key"], body["plan"])
+            elif action == "addons":
+                adds = body.get("addons")
+                if not isinstance(adds, list) or any(a not in ADDONS for a in adds):
+                    return self.fail("addons must be a list of antixray / antiesp")
+                k["addons"] = sorted(set(adds))
+                log(actor, "addons", "Add-ons changed", k["key"], ", ".join(k["addons"]) or "none")
             elif action == "renew":
                 months = int(body.get("months") or 1)
                 k["expires"] = max(now(), k["expires"] or now()) + months * 30 * DAY

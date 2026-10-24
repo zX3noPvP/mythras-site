@@ -45,7 +45,7 @@
     <span class="folia-mark">{{ icon('check') }}</span>
     <div class="folia-copy">
       <h2 id="folia-title">{{ _("Available on Folia too") }}</h2>
-      <p>{{ _("Paper, Spigot and Folia, Minecraft 1.21 to 26.x. Folia runs with the Enterprise plan.") }}</p>
+      <p>{{ _("Paper, Spigot and Folia, Minecraft 1.21 to 26.x. Folia runs with the Pro plan.") }}</p>
     </div>
     <a class="btn btn-green btn-lg" href="{{ url_for('docs_page') }}#requirements">{{ _("Supported servers") }} {{ icon('arrow') }}</a>
   </div>
@@ -101,7 +101,7 @@
       <p class="kicker">{{ _("Replay") }}</p>
       <h2>{{ _("Don't guess.") }} <span class="red">{{ _("Watch it.") }}</span></h2>
       <p>{{ _("Each flag is saved with the moments that led up to it. Press play, scrub the timeline, or click an event to jump straight to it.") }}</p>
-      <p class="small">{{ _("Available on Pro and Enterprise. Replays are deleted automatically after 7 days.") }}</p>
+      <p class="small">{{ _("Included in Pro. Replays are deleted automatically after 7 days.") }}</p>
     </header>
 
     <div class="replay reveal" id="replay-player" aria-label="{{ _('Interactive replay demo') }}">
@@ -191,7 +191,7 @@
       <h2>{{ _("Protected in three steps") }}</h2>
       <ol class="steps">
         <li><span class="step-n">1</span><div><h3>{{ _("Sign in with Discord") }}</h3><p>{{ _("No password. Your account is created on first login.") }}</p></div></li>
-        <li><span class="step-n">2</span><div><h3>{{ _("Get a key and link it") }}</h3><p>{{ _("Pick Base, Pro or Enterprise, then link the key to your account in the dashboard.") }}</p></div></li>
+        <li><span class="step-n">2</span><div><h3>{{ _("Get a key and link it") }}</h3><p>{{ _("Get Pro or an add-on on our Discord, then link the key to your account in the dashboard.") }}</p></div></li>
         <li><span class="step-n">3</span><div><h3>{{ _("Paste the key in the plugin") }}</h3><p>{{ _("The plugin verifies the key and unlocks your plan's checks.") }}</p></div></li>
       </ol>
     </div>
@@ -223,7 +223,7 @@
     <header class="section-head center reveal">
       <p class="kicker">{{ _("Pricing") }}</p>
       <h2>{{ _("Monthly plans. No commitment.") }}</h2>
-      <p>{{ _("Each plan is a one-month license: buy it and renew it with a ticket on our Discord server. Every tier includes everything below it.") }}</p>
+      <p>{{ _("Free to start, Pro for everything. Anti-XRay and Anti-ESP are add-ons for Free or Pro. Each is a one-month license: buy and renew it with a ticket on our Discord server.") }}</p>
     </header>
 
     <div class="pricing">
@@ -233,7 +233,6 @@
         <h3>{{ tier.name }}</h3>
         <p class="plan-desc">{{ _(tier.description) }}</p>
         <p class="plan-price">{{ tier.price }}<span>{{ _(tier.period) }}</span></p>
-        {% if tier.lifetime_price %}<p class="lifetime-note">{{ _("or %(price)s lifetime, one-time payment", price=tier.lifetime_price) }}</p>{% endif %}
         {% if key == 'free' and FREE_LINKS %}
           <a class="btn btn-outline full" href="{{ FREE_LINKS[0].url }}" target="_blank" rel="noopener">{{ _("Download free") }}</a>
           {% if FREE_LINKS|length > 1 %}<p class="free-links small">{{ _("Also on:") }} {% for l in FREE_LINKS[1:] %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
@@ -251,20 +250,34 @@
         </ul>
       </article>
       {% endfor %}
+      {% for key, addon in ADDONS.items() %}
+      <article class="plan plan-addon reveal">
+        <span class="plan-flag plan-flag-addon">{{ _("Add-on") }}</span>
+        <h3>{{ addon.name }}</h3>
+        <p class="plan-desc">{{ _(addon.description) }}</p>
+        <p class="plan-price">{{ addon.price }}<span>{{ _(addon.period) }}</span></p>
+        {% if SUPPORT_DISCORD %}
+        <a class="btn btn-outline full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
+        {% endif %}
+        <ul class="plan-list">
+          {% for f in addon.features %}<li>{{ icon('plus') }}<span>{{ _(f) }}</span></li>{% endfor %}
+        </ul>
+      </article>
+      {% endfor %}
     </div>
 
     <div class="compare-wrap reveal">
       <table class="compare">
         <caption class="sr-only">{{ _("Feature comparison by tier") }}</caption>
         <thead>
-          <tr><th scope="col">{{ _("Feature") }}</th><th scope="col">Free (beta)</th><th scope="col">Base</th><th scope="col" class="col-pro">Pro</th><th scope="col">Enterprise</th></tr>
+          <tr><th scope="col">{{ _("Feature") }}</th><th scope="col">Free (beta)</th><th scope="col" class="col-pro">Pro</th></tr>
         </thead>
         <tbody>
-          {% for label, free, base, pro, ent in PLAN_MATRIX %}
+          {% for label, free, pro in PLAN_MATRIX %}
           <tr>
             <th scope="row">{{ _(label) }}</th>
-            {% for v in (free, base, pro, ent) %}
-            <td{% if loop.index == 3 %} class="col-pro"{% endif %}>{% if v is sameas true %}{{ icon('check', 'yes') }}<span class="sr-only">{{ _("Included") }}</span>{% elif v is none %}{{ icon('minus', 'no') }}{% else %}{{ _(v) }}{% endif %}</td>
+            {% for v in (free, pro) %}
+            <td{% if loop.index == 2 %} class="col-pro"{% endif %}>{% if v is sameas true %}{{ icon('check', 'yes') }}<span class="sr-only">{{ _("Included") }}</span>{% elif v is none %}{{ icon('minus', 'no') }}{% else %}{{ _(v) }}{% endif %}</td>
             {% endfor %}
           </tr>
           {% endfor %}
@@ -289,16 +302,16 @@
       </details>
       <details>
         <summary>{{ _("Do I need a key for the Free tier?") }}{{ icon('plus') }}</summary>
-        <p>{{ _("No. Install the plugin and it starts the Free plan (beta) right away: basic movement checks, Crash and BadPackets protection, alerts only. You only need a key for Base, Pro or Enterprise.") }}</p>
+        <p>{{ _("No. Install the plugin and it starts the Free plan (beta) right away: basic movement checks, Crash and BadPackets protection, alerts only. You only need a key for Pro or for an add-on.") }}</p>
         {% if FREE_LINKS %}<p class="free-links">{{ _("Free version on:") }} {% for l in FREE_LINKS %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </details>
       <details>
         <summary>{{ _("How long are replays kept?") }}{{ icon('plus') }}</summary>
-        <p>{{ _("Replays are included in Pro and Enterprise and are deleted automatically after 7 days.") }}</p>
+        <p>{{ _("Replays are included in Pro and are deleted automatically after 7 days.") }}</p>
       </details>
       <details>
         <summary>{{ _("Which servers does Mythras run on?") }}{{ icon('plus') }}</summary>
-        <p>{{ _("Paper or Spigot 1.21 or newer, and Folia with the Enterprise plan. You need Java 21+ and PacketEvents 2.14.0 or newer.") }} <a href="{{ url_for('docs_page') }}#requirements">{{ _("Docs") }}</a></p>
+        <p>{{ _("Paper or Spigot 1.21 or newer, and Folia with the Pro plan. You need Java 21+ and PacketEvents 2.14.0 or newer.") }} <a href="{{ url_for('docs_page') }}#requirements">{{ _("Docs") }}</a></p>
       </details>
       <details>
         <summary>{{ _("What does AI Learning actually do?") }}{{ icon('plus') }}</summary>

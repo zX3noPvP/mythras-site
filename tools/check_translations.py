@@ -44,8 +44,12 @@ def collect():
             # ACTION_MESSAGES = {...}
             if isinstance(node, ast.Assign) and any(getattr(tg, "id", None) == "ACTION_MESSAGES" for tg in node.targets):
                 found.update(v.value for v in node.value.values if isinstance(v, ast.Constant))
-    tiers = ast.literal_eval(src[src.index("TIERS = {"):src.index("SCHEMA = ")].split("=", 1)[1].strip())
-    for tier in tiers.values():
+    def literal(name):  # a top-level dict literal of app.py (TIERS, ADDONS)
+        for node in ast.parse(src).body:
+            if isinstance(node, ast.Assign) and any(getattr(tg, "id", None) == name for tg in node.targets):
+                return ast.literal_eval(node.value)
+        return {}
+    for tier in list(literal("TIERS").values()) + list(literal("ADDONS").values()):
         found.update([tier["description"], tier["period"], *tier["features"]])
     found.update({"Active", "Revoked", "Expired", "Unknown", "Never"})
     sys.path.insert(0, str(ROOT))

@@ -7,7 +7,7 @@
   <p class="back-link"><a href="{{ url_for('admin_invites') }}">← {{ _("Setup links") }}</a></p>
   <header class="app-head">
     <div>
-      <p class="kicker">Admin · <span class="badge badge-{{ row.plan }}">{{ row.plan|plan_name }}</span></p>
+      <p class="kicker">Admin · <span class="badge badge-{{ row.plan }}">{{ row.plan|plan_name }}</span>{{ row.addons|addon_badges }}</p>
       <h1>{{ _("Answers of %(name)s", name=names.get(row.discord_id) or row.discord_id) }}</h1>
       <p class="muted small">{{ row.created_at|date }} · Discord ID <span class="mono">{{ row.discord_id }}</span></p>
     </div>

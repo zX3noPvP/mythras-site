@@ -52,7 +52,7 @@
           {% for k in keys %}
           <tr class="row-link">
             <td><a class="mono key-link" href="{{ url_for('admin_key', key=k.key) }}">{{ k.key }}</a></td>
-            <td><span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span></td>
+            <td><span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>{{ k.addons|addon_badges }}</td>
             <td>{{ status_badge(k.status) }}</td>
             <td>{{ servers_cell(k) }}</td>
             <td class="nowrap small">{{ k.expires|ms_date }}</td>

@@ -82,7 +82,7 @@
         <button class="icon-btn" type="button" data-copy aria-label="{{ _('Copy key') }}">{{ icon('copy') }}</button>
       </div>
       <div class="head-badges">
-        <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>
+        <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>{{ k.addons|addon_badges }}
         {{ status_badge(k.status) }}
       </div>
     </div>
@@ -112,7 +112,7 @@
     {% endif %}
 
     <dl class="license-meta">
-      <div><dt>{{ _("Plan") }}</dt><dd>{{ k.plan|plan_name }}</dd></div>
+      <div><dt>{{ _("Plan") }}</dt><dd>{{ k.plan|plan_name }}{% for a in k.addons or [] if a in ADDONS %} + {{ ADDONS[a].name }}{% endfor %}</dd></div>
       <div><dt>{{ _("Servers active") }}</dt><dd>{{ servers_cell(k) }}</dd></div>
       <div><dt>{{ _("Created") }}</dt><dd>{{ k.created|ms_date('—') }}</dd></div>
     </dl>
@@ -157,7 +157,7 @@
     <div class="panel empty">
       {{ icon('shield', 'empty-icon') }}
       <h3>{{ _("No licenses linked yet") }}</h3>
-      <p class="muted">{{ _("Using Free? You don't need a key, just install the plugin. For Base, Pro or Enterprise, link the key you bought above or pick a plan below.") }}</p>
+      <p class="muted">{{ _("Using Free? You don't need a key, just install the plugin. For Pro or an add-on, link the key you bought above or pick one below.") }}</p>
       {% if FREE_LINKS %}<p class="free-links">{{ _("Free version on:") }} {% for l in FREE_LINKS %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
     </div>
     {% endif %}
@@ -169,14 +169,13 @@
       <p class="muted small">{{ _("Purchases happen on our Discord server: open a ticket, we tell you how to pay, and your key appears here right after.") }}</p>
     </div>
     <div class="tier-grid tier-grid-3">
-      {% for key in ('base', 'pro', 'enterprise') %}
-      {% set tier = TIERS[key] %}
+      {% for key, tier in [('pro', TIERS['pro'])] + ADDONS|dictsort %}
       <article class="tier-card {% if key == 'pro' %}is-owned{% endif %}">
         <div class="tier-card-top">
           <span class="badge badge-{{ key }}">{{ tier.name }}</span>
           <b>{{ tier.price }}<small class="muted"> {{ _(tier.period) }}</small></b>
         </div>
-        {% if tier.lifetime_price %}<p class="lifetime-note">{{ _("or %(price)s lifetime, one-time payment", price=tier.lifetime_price) }}</p>{% endif %}
+        {% if key in ADDONS %}<p class="lifetime-note">{{ _("Add-on for Free or Pro") }}</p>{% endif %}
         <p class="muted small">{{ _(tier.description) }}</p>
         {% if SUPPORT_DISCORD %}
           <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>

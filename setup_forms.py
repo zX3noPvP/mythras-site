@@ -15,8 +15,10 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
-PLANS = ("base", "pro", "enterprise")
-PLAN_RANK = {p: i for i, p in enumerate(PLANS)}
+PLANS = ("free", "pro")
+ADDONS = ("antixray", "antiesp")
+# who sees a question: everyone (free), Pro keys (pro), or keys with that add-on
+REQUIREMENTS = PLANS + ADDONS
 KINDS = ("yesno", "choice", "text", "number", "ip", "list", "webhook")
 MAX_TEXT = 200
 LIST_ITEM_RE = re.compile(r"^[A-Za-z0-9_.:\-]{1,64}$")
@@ -27,7 +29,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS setup_questions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     position    INTEGER NOT NULL,
-    plan        TEXT NOT NULL,              -- lowest plan that sees it: base | pro | enterprise
+    plan        TEXT NOT NULL,              -- who sees it: free (everyone) | pro | antixray | antiesp (add-ons)
     kind        TEXT NOT NULL,              -- yesno | choice | text | number | ip | list | webhook
     config_key  TEXT NOT NULL UNIQUE,       -- plugin config path, or info.* (only shown to the admin)
     label       TEXT NOT NULL,
@@ -43,7 +45,8 @@ CREATE TABLE IF NOT EXISTS setup_questions (
 );
 CREATE TABLE IF NOT EXISTS setup_invites (
     token_hash  TEXT PRIMARY KEY,
-    plan        TEXT NOT NULL,
+    plan        TEXT NOT NULL,              -- free | pro
+    addons      TEXT NOT NULL DEFAULT '[]', -- JSON list: antixray, antiesp
     license_key TEXT,                       -- key the answers configure (optional: can be chosen later)
     discord_id  TEXT,                       -- only this Discord account may use it (optional)
     note        TEXT NOT NULL DEFAULT '',
@@ -74,41 +77,41 @@ LANGS = [["en", "English"], ["it", "Italiano"], ["es", "Español"], ["pt", "Port
 
 # (plan, kind, config_key, label, help, warning, options, default, min, max, show_if)
 DEFAULT_QUESTIONS = [
-    ("base", "choice", "language", "Language of the plugin messages", "", "", LANGS, "en", None, None, ""),
-    ("base", "choice", "info.server_type", "What kind of server do you run?", "Only for us: it helps us suggest the right sensitivity.", "",
+    ("free", "choice", "language", "Language of the plugin messages", "", "", LANGS, "en", None, None, ""),
+    ("free", "choice", "info.server_type", "What kind of server do you run?", "Only for us: it helps us suggest the right sensitivity.", "",
      [["survival", "Survival"], ["pvp", "PvP / Practice"], ["minigames", "Minigames"], ["network", "Network"], ["other", "Other"]], "survival", None, None, ""),
-    ("base", "choice", "info.players", "How many players are usually online?", "", "",
+    ("free", "choice", "info.players", "How many players are usually online?", "", "",
      [["lt50", "Fewer than 50"], ["50-200", "50 to 200"], ["gt200", "More than 200"]], "lt50", None, None, ""),
-    ("base", "ip", "info.server_ip", "Numeric IP address of your Minecraft server",
+    ("free", "ip", "info.server_ip", "Numeric IP address of your Minecraft server",
      "Numbers only, e.g. 123.45.67.89 (IPv6 also works), not a domain name. Your license will work only from this address.", "", [], "", None, None, ""),
-    ("base", "choice", "database.type", "Where should Mythras save the violations?", "", "",
+    ("free", "choice", "database.type", "Where should Mythras save the violations?", "", "",
      [["file", "Files (default)"], ["sqlite", "SQLite database"]], "file", None, None, ""),
-    ("base", "yesno", "alerts.console", "Show alerts in the server console too?", "", "", [], YES, None, None, ""),
-    ("base", "choice", "alerts.cooldown-ms", "How often can the same alert repeat?", "Per player and per check.", "",
+    ("free", "yesno", "alerts.console", "Show alerts in the server console too?", "", "", [], YES, None, None, ""),
+    ("free", "choice", "alerts.cooldown-ms", "How often can the same alert repeat?", "Per player and per check.", "",
      [["1000", "At most once per second"], ["3000", "At most once every 3 seconds"], ["10000", "At most once every 10 seconds"]], "1000", None, None, ""),
-    ("base", "yesno", "client-info.notify-staff", "Warn staff when a player joins with a suspicious client (e.g. Meteor, Wurst)?", "", "", [], YES, None, None, ""),
-    ("base", "webhook", "discord.webhook-url", "Discord webhook for alerts",
+    ("free", "yesno", "client-info.notify-staff", "Warn staff when a player joins with a suspicious client (e.g. Meteor, Wurst)?", "", "", [], YES, None, None, ""),
+    ("pro", "webhook", "discord.webhook-url", "Discord webhook for alerts",
      "Optional. Channel settings, Integrations, Webhooks, Copy URL. Empty = alerts only in game.", "", [], "", None, None, ""),
-    ("base", "number", "discord.min-vl", "From which violation level should alerts go to Discord?", "", "", [], "5", 1, 100, ""),
-    ("base", "yesno", "discord.punishments", "Send punishments to Discord too?", "", "", [], YES, None, None, ""),
-    ("base", "yesno", "punishments.enabled", "Turn on automatic punishments?",
+    ("pro", "number", "discord.min-vl", "From which violation level should alerts go to Discord?", "", "", [], "5", 1, 100, ""),
+    ("pro", "yesno", "discord.punishments", "Send punishments to Discord too?", "", "", [], YES, None, None, ""),
+    ("pro", "yesno", "punishments.enabled", "Turn on automatic punishments?",
      "We suggest No for the first days: watch the alerts first, then turn punishments on.", "", [], NO, None, None, ""),
-    ("base", "text", "punishments.command", "Punishment command", "Run from the console. Placeholders: %player%, %check%, %vl%.", "", [], "ban %player% 7d Cheating", None, None, "punishments.enabled=yes"),
-    ("base", "text", "punishments.kick-message", "Message shown to the punished player", "Optional.", "", [], "", None, None, "punishments.enabled=yes"),
-    ("base", "yesno", "punishments.broadcast", "Announce punishments in the chat to everyone?", "", "", [], YES, None, None, "punishments.enabled=yes"),
-    ("base", "choice", "checks.sensitivity", "How strict should the checks be?", "", "",
+    ("pro", "text", "punishments.command", "Punishment command", "Run from the console. Placeholders: %player%, %check%, %vl%.", "", [], "ban %player% 7d Cheating", None, None, "punishments.enabled=yes"),
+    ("pro", "text", "punishments.kick-message", "Message shown to the punished player", "Optional.", "", [], "", None, None, "punishments.enabled=yes"),
+    ("pro", "yesno", "punishments.broadcast", "Announce punishments in the chat to everyone?", "", "", [], YES, None, None, "punishments.enabled=yes"),
+    ("pro", "choice", "checks.sensitivity", "How strict should the checks be?", "", "",
      [["soft", "Soft (fewer false flags)"], ["normal", "Normal"], ["strict", "Strict"]], "normal", None, None, ""),
-    ("base", "yesno", "setback.enabled", "Pull cheaters back when they move illegally (setback)?", "", "", [], YES, None, None, ""),
-    ("base", "yesno", "checks.freecam.cancel", "Block clicks through walls (FreeCam, GhostHand)?", "", "", [], YES, None, None, ""),
-    ("base", "yesno", "checks.xray.enabled", "Detect X-Ray mining (alerts only)?", "", "", [], YES, None, None, ""),
-    ("base", "yesno", "bedrock.enabled", "Do Bedrock players join your server (Geyser/Floodgate)?", "", "", [], NO, None, None, ""),
-    ("base", "choice", "bedrock.reach-extra", "Extra reach tolerance for Bedrock players", "", "",
+    ("pro", "yesno", "setback.enabled", "Pull cheaters back when they move illegally (setback)?", "", "", [], YES, None, None, ""),
+    ("pro", "yesno", "checks.freecam.cancel", "Block clicks through walls (FreeCam, GhostHand)?", "", "", [], YES, None, None, ""),
+    ("pro", "yesno", "checks.xray.enabled", "Detect X-Ray mining (alerts only)?", "", "", [], YES, None, None, ""),
+    ("pro", "yesno", "bedrock.enabled", "Do Bedrock players join your server (Geyser/Floodgate)?", "", "", [], NO, None, None, ""),
+    ("pro", "choice", "bedrock.reach-extra", "Extra reach tolerance for Bedrock players", "", "",
      [["0.3", "0.3 blocks"], ["0.5", "0.5 blocks"], ["1.0", "1.0 block"]], "0.5", None, None, "bedrock.enabled=yes"),
 
-    ("pro", "yesno", "mitigations.anti-xray.enabled", "Turn on Anti-XRay by default?", "Hides ores the player cannot see.", "It can cause a little lag.", [], NO, None, None, ""),
-    ("pro", "number", "mitigations.anti-xray.max-y", "Hide ores up to which height (Y)?", "", "", [], "64", -64, 320, "mitigations.anti-xray.enabled=yes"),
-    ("pro", "yesno", "mitigations.anti-esp.enabled", "Anti-ESP: hide players behind walls?", "", "", [], YES, None, None, ""),
-    ("pro", "yesno", "mitigations.anti-storage-esp.enabled", "Anti-StorageESP: hide chests and containers behind walls?", "", "", [], YES, None, None, ""),
+    ("antixray", "yesno", "mitigations.anti-xray.enabled", "Turn on Anti-XRay by default?", "Anti-XRay add-on: hides ores the player cannot see.", "It can cause a little lag.", [], NO, None, None, ""),
+    ("antixray", "number", "mitigations.anti-xray.max-y", "Hide ores up to which height (Y)?", "", "", [], "64", -64, 320, "mitigations.anti-xray.enabled=yes"),
+    ("antiesp", "yesno", "mitigations.anti-esp.enabled", "Anti-ESP: hide players behind walls?", "", "", [], YES, None, None, ""),
+    ("antiesp", "yesno", "mitigations.anti-storage-esp.enabled", "Anti-StorageESP: hide chests and containers behind walls?", "", "", [], YES, None, None, ""),
     ("pro", "yesno", "mitigations.health-filter", "Hide other players' health (against health indicators)?", "", "", [], YES, None, None, ""),
     ("pro", "yesno", "mitigations.combat.cancel-impossible-hits", "Cancel impossible hits (beyond reach, through walls)?", "", "", [], YES, None, None, ""),
     ("pro", "yesno", "mitigations.combat.damage-penalty", "Halve the damage of a player right after a combat flag?", "", "", [], YES, None, None, ""),
@@ -118,16 +121,16 @@ DEFAULT_QUESTIONS = [
     ("pro", "list", "exemptions.worlds", "Worlds where no check runs", "Optional, separated by commas (e.g. minigames, event).", "", [], "", None, None, ""),
     ("pro", "list", "exemptions.regions", "WorldGuard regions where no check runs", "Optional, separated by commas (launch pads, parkour).", "", [], "", None, None, ""),
     ("pro", "list", "exemptions.players", "Players who are never checked", "Optional: names or UUIDs separated by commas (staff, test accounts).", "", [], "", None, None, ""),
-    ("pro", "yesno", "ai.enabled", "Turn on AI Learning?", "On Pro the AI only sends alerts.", "", [], YES, None, None, ""),
+    ("pro", "yesno", "ai.enabled", "Turn on AI Learning?", "", "", [], YES, None, None, ""),
 
-    ("enterprise", "yesno", "ai.cloud.enabled", "Turn on Mythras Cloud AI?", "", "", [], YES, None, None, ""),
-    ("enterprise", "yesno", "ai.cloud.share", "Share anonymous combat data to improve Cloud AI?", "Never names, UUIDs or IP addresses.", "", [], YES, None, None, "ai.cloud.enabled=yes"),
-    ("enterprise", "yesno", "ai.can-punish", "Can the AI punish on its own?", "", "", [], NO, None, None, ""),
-    ("enterprise", "choice", "ai.sensitivity", "How sensitive should the AI be?", "", "",
+    ("pro", "yesno", "ai.cloud.enabled", "Turn on Mythras Cloud AI?", "", "", [], YES, None, None, ""),
+    ("pro", "yesno", "ai.cloud.share", "Share anonymous combat data to improve Cloud AI?", "Never names, UUIDs or IP addresses.", "", [], YES, None, None, "ai.cloud.enabled=yes"),
+    ("pro", "yesno", "ai.can-punish", "Can the AI punish on its own?", "", "", [], NO, None, None, ""),
+    ("pro", "choice", "ai.sensitivity", "How sensitive should the AI be?", "", "",
      [["cautious", "Cautious (flags only when very sure)"], ["normal", "Normal"], ["aggressive", "Aggressive"]], "normal", None, None, ""),
-    ("enterprise", "text", "network.server-name", "BungeeCord/Velocity network: name of this server",
+    ("pro", "text", "network.server-name", "BungeeCord/Velocity network: name of this server",
      "Optional, e.g. lobby. Empty = no network.", "", [], "", None, None, ""),
-    ("enterprise", "yesno", "info.placeholderapi", "Do you use PlaceholderAPI?", "Only for us.", "", [], NO, None, None, ""),
+    ("pro", "yesno", "info.placeholderapi", "Do you use PlaceholderAPI?", "Only for us.", "", [], NO, None, None, ""),
 ]
 
 
@@ -160,8 +163,24 @@ def iso(dt):
 
 def init(db):
     db.executescript(SCHEMA)
+    if "addons" not in {r[1] for r in db.execute("PRAGMA table_info(setup_invites)")}:
+        db.execute("ALTER TABLE setup_invites ADD COLUMN addons TEXT NOT NULL DEFAULT '[]'")
+    if "addons" not in {r[1] for r in db.execute("PRAGMA table_info(setup_answers)")}:
+        db.execute("ALTER TABLE setup_answers ADD COLUMN addons TEXT NOT NULL DEFAULT '[]'")
     if db.execute("SELECT COUNT(*) FROM setup_questions").fetchone()[0] == 0:
         reset_defaults(db)
+    migrate_plans(db)
+
+
+def migrate_plans(db):
+    """Plans before 2026-10 were base / pro / enterprise: map questions, links and answers to free / pro + add-ons."""
+    defaults = {q[2]: q[0] for q in DEFAULT_QUESTIONS}
+    for row in db.execute("SELECT id, config_key FROM setup_questions WHERE plan IN ('base', 'enterprise')"
+                          " OR (plan = 'pro' AND config_key LIKE 'mitigations.anti-%')").fetchall():
+        db.execute("UPDATE setup_questions SET plan = ? WHERE id = ?", (defaults.get(row[1], "pro"), row[0]))
+    db.execute("UPDATE setup_invites SET plan = 'pro' WHERE plan IN ('base', 'enterprise')")
+    db.execute("UPDATE setup_answers SET plan = 'pro' WHERE plan IN ('base', 'enterprise')")
+    db.commit()
 
 
 def reset_defaults(db):
@@ -188,9 +207,20 @@ def all_questions(db):
     return [_row(r) for r in db.execute("SELECT * FROM setup_questions ORDER BY position, id")]
 
 
-def questions_for(db, plan):
-    rank = PLAN_RANK.get(plan, 0)
-    return [q for q in all_questions(db) if q["enabled"] and PLAN_RANK.get(q["plan"], 99) <= rank]
+def sees(requirement, plan, addons):
+    """Does a key with this plan and these add-ons get a question with this requirement?"""
+    return requirement == "free" or (requirement == "pro" and plan == "pro") or requirement in (addons or ())
+
+
+def questions_for(db, plan, addons=()):
+    return [q for q in all_questions(db) if q["enabled"] and sees(q["plan"], plan, addons)]
+
+
+def invite_addons(row):
+    try:
+        return [a for a in json.loads(row["addons"] or "[]") if a in ADDONS]
+    except (ValueError, TypeError, IndexError, KeyError):
+        return []
 
 
 def _visible(q, answers):
@@ -273,14 +303,19 @@ def _hash(token):
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def create_invite(db, plan, created_by, license_key=None, discord_id=None, note="", hours=168):
+def create_invite(db, plan, created_by, license_key=None, discord_id=None, note="", hours=168, addons=()):
     if plan not in PLANS:
         raise ValueError("Choose a valid plan.")
+    if any(a not in ADDONS for a in addons):
+        raise ValueError("Choose valid add-ons.")
+    addons = sorted(set(addons))
+    if plan == "free" and not addons:
+        raise ValueError("A Free link needs at least one add-on.")
     token = secrets.token_urlsafe(24)
     db.execute(
-        "INSERT INTO setup_invites (token_hash, plan, license_key, discord_id, note, created_by, created_at, expires_at)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (_hash(token), plan, license_key or None, discord_id or None, (note or "")[:200], created_by,
+        "INSERT INTO setup_invites (token_hash, plan, addons, license_key, discord_id, note, created_by, created_at,"
+        " expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (_hash(token), plan, json.dumps(addons), license_key or None, discord_id or None, (note or "")[:200], created_by,
          iso(now()), iso(now() + timedelta(hours=max(1, min(int(hours), 24 * 60))))),
     )
     db.commit()

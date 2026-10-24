@@ -338,7 +338,7 @@
   // wiki: show the checks included in a plan
   var planButtons = document.querySelectorAll("[data-plan-filter]");
   if (planButtons.length) {
-    var order = ["free", "base", "pro", "enterprise"];
+    var order = ["free", "pro"];
     planButtons.forEach(function (btn) {
       btn.addEventListener("click", function () {
         var plan = btn.getAttribute("data-plan-filter");

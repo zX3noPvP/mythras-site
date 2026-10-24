@@ -8,7 +8,7 @@
     <div>
       <p class="kicker">Admin</p>
       <h1>{{ _("Setup links") }}</h1>
-      <p class="muted small">{{ _("Single-use links with the questions of a plan. Send them in the ticket: the answers become the plugin configuration of the key.") }}</p>
+      <p class="muted small">{{ _("Single-use links with the questions of a plan and its add-ons. Send them in the ticket: the answers become the plugin configuration of the key.") }}</p>
     </div>
     <a class="btn btn-outline" href="{{ url_for('admin_questions') }}">{{ icon('settings') }}{{ _("Edit the questions") }}</a>
   </header>
@@ -30,9 +30,13 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <label>{{ _("Plan") }}
         <select name="plan" required>
-          {% for p in ('base', 'pro', 'enterprise') %}<option value="{{ p }}">{{ p|plan_name }}</option>{% endfor %}
+          {% for p in ('pro', 'free') %}<option value="{{ p }}">{{ p|plan_name }}</option>{% endfor %}
         </select>
       </label>
+      <fieldset class="addon-picks">
+        <legend>{{ _("Add-ons") }}</legend>
+        {% for a, addon in ADDONS.items() %}<label class="check"><input type="checkbox" name="addons" value="{{ a }}"> {{ addon.name }}</label>{% endfor %}
+      </fieldset>
       <label>{{ _("Key to configure") }}
         <select name="key">
           <option value="">{{ _("Choose later") }}</option>
@@ -63,7 +67,7 @@
           <tr>
             <td class="small nowrap">{{ a.created_at|date }}</td>
             <td class="small">{{ names.get(a.discord_id) or a.discord_id }}</td>
-            <td><span class="badge badge-{{ a.plan }}">{{ a.plan|plan_name }}</span></td>
+            <td><span class="badge badge-{{ a.plan }}">{{ a.plan|plan_name }}</span>{{ a.addons|addon_badges }}</td>
             <td class="mono small">{{ a.license_key or '—' }}</td>
             <td class="mono small">{{ a.server_ip or '—' }}</td>
             <td class="small">{% if a.applied_at %}<span class="status-dot">{{ _("Applied") }}</span>{% elif a.apply_error %}<span class="status-dot is-bad">{{ _("Not applied") }}</span>{% else %}<span class="status-dot is-off">{{ _("To do") }}</span>{% endif %}</td>
@@ -87,7 +91,7 @@
           {% set st = states[i.token_hash] %}
           <tr>
             <td class="small nowrap">{{ i.created_at|date }}<br><span class="muted">{{ i.created_by }}</span></td>
-            <td><span class="badge badge-{{ i.plan }}">{{ i.plan|plan_name }}</span></td>
+            <td><span class="badge badge-{{ i.plan }}">{{ i.plan|plan_name }}</span>{{ i.addons|addon_badges }}</td>
             <td class="small">{% if i.discord_id %}{{ names.get(i.discord_id) or i.discord_id }}{% else %}<span class="muted">{{ _("Anyone with the link") }}</span>{% endif %}{% if i.license_key %}<br><span class="mono">{{ i.license_key }}</span>{% endif %}</td>
             <td class="small muted clamp">{{ i.note }}</td>
             <td class="small">

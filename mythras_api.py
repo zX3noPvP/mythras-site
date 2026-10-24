@@ -99,8 +99,10 @@ def list_keys(q=None, plan=None, status=None):
     return call("/api/keys", query={"q": q, "plan": plan, "status": status})["keys"]
 
 
-def create_key(plan, days=None, servers=None, note=None, owner=None, actor=None):
+def create_key(plan, days=None, servers=None, note=None, owner=None, actor=None, addons=None):
     body = {"plan": plan, "actor": actor}
+    if addons:
+        body["addons"] = list(addons)
     if days is not None:
         body["days"] = days
     if servers is not None:
@@ -116,7 +118,7 @@ def get_key(key):
     return call(f"/api/keys/{_seg(key)}")["key"]
 
 
-KEY_ACTIONS = {"revoke", "unrevoke", "reset", "plan", "renew", "extend", "servers", "note", "owner", "ips", "config"}
+KEY_ACTIONS = {"revoke", "unrevoke", "reset", "plan", "renew", "extend", "servers", "note", "owner", "ips", "config", "addons"}
 
 
 def key_action(key, action, actor, **fields):

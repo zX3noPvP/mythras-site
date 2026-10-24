@@ -16,8 +16,8 @@
       <label class="span-2">{{ _("Question") }}
         <input name="label" required maxlength="200" value="{{ val('label') }}">
       </label>
-      <label>{{ _("Plan") }}
-        <select name="plan">{% for p in ('base', 'pro', 'enterprise') %}<option value="{{ p }}" {% if val('plan', 'base') == p %}selected{% endif %}>{{ p|plan_name }}</option>{% endfor %}</select>
+      <label>{{ _("Asked to") }}
+        <select name="plan">{% for p, text in (('free', _('Everyone (Free)')), ('pro', 'Pro'), ('antixray', _('Anti-XRay add-on')), ('antiesp', _('Anti-ESP add-on'))) %}<option value="{{ p }}" {% if val('plan', 'free') == p %}selected{% endif %}>{{ text }}</option>{% endfor %}</select>
       </label>
       <label>{{ _("Answer type") }}
         <select name="kind">

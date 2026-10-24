@@ -341,9 +341,8 @@ button { font: inherit; }
 
 .badge { display: inline-block; padding: 3px var(--s2); font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--line-2); }
 .badge-free { color: var(--muted); }
-.badge-base { color: var(--text); border-color: var(--text); }
+.badge-addon { color: var(--text); border-color: var(--text); }
 .badge-pro { background: var(--red); border-color: var(--red); color: #fff; }
-.badge-enterprise { background: var(--text); border-color: var(--text); color: var(--bg); }
 
 .empty { text-align: center; padding: var(--s7) var(--s5) !important; }
 .empty .empty-icon { width: 40px; height: 40px; color: var(--red-text); margin-bottom: var(--s3); }
@@ -871,3 +870,11 @@ input:user-invalid { border-color: var(--red); }
 .seg-radio label + label span { border-left: 1px solid var(--line-2); }
 .seg-radio input:checked + span { background: var(--text); color: var(--bg); }
 .seg-radio input:focus-visible + span { outline: 2px solid var(--red); outline-offset: 2px; }
+
+/* add-on cards on the pricing page */
+.plan-addon { background: #050505; }
+.plan-flag-addon { background: var(--text); color: var(--bg); }
+
+.addon-picks { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; min-width: 0; }
+.addon-picks legend { font-size: 13px; color: var(--muted); padding: 0; margin-bottom: 6px; width: 100%; }
+.check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }

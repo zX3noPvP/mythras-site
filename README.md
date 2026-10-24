@@ -71,4 +71,4 @@ I tempi degli eventi nello script devono corrispondere ai `data-t` della lista e
 ## Note
 
 - Il database SQLite locale (`data/mythras.db`) contiene solo gli utenti Discord che hanno fatto login (nomi mostrati in admin). Le licenze stanno sul server Mythras.
-- I piani del server licenze sono `base`, `pro`, `enterprise`. Il piano **Free** compare solo nella pagina prezzi.
+- I piani del server licenze sono `free` e `pro`; gli add-on `antixray` e `antiesp` stanno sulla chiave (`addons`). Vedi PROMPT-PIANI-ADDON.md.
