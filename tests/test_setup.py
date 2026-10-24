@@ -179,6 +179,10 @@ t = text(client(CUST).get("/dashboard"))
 check("dashboard shows add-on cards", "Add-on for Free or Pro" in t and "€5.99" in t and "€19.99" in t and "Enterprise" not in t)
 t = text(m.app.test_client().get("/"))
 check("homepage: Free + Pro + 2 add-ons, no old plans", "€19.99" in t and t.count("€5.99") >= 2 and "Enterprise" not in t and "Base" not in t and "lifetime" not in t.lower())
+check("add-ons are one-time and forever", t.count("one-time, forever") == 2 and "Pay once, yours forever" in t)
+ad.post("/admin/keys/new", data={"csrf_token": "tok", "plan": "free", "addons": ["antixray"], "days": "30"})
+fk = [k for k in mock.keys.values() if k["plan"] == "free" and k.get("addons") == ["antixray"] and k["note"] == ""]
+check("a Free key for an add-on never expires", len(fk) == 1 and fk[0]["expires"] == 0)
 
 check("robots blocks setup links", "Disallow: /setup/" in m.app.test_client().get("/robots.txt").text)
 

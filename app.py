@@ -119,15 +119,16 @@ TIERS = {
     },
 }
 
-# Add-ons: bought on top of Free or Pro, each a monthly license on the same key.
+# Add-ons: bought once on top of Free or Pro, they never expire (they stay on the key even after Pro expires).
 ADDONS = {
     "antixray": {
         "name": "Anti-XRay",
         "price": "€5.99",
-        "period": "per month",
+        "period": "one-time, forever",
         "description": "Ores out of sight are sent as rock, also those open to caves, until the player can see them.",
         "features": [
             "Hides ores behind walls and in caves",
+            "Pay once, yours forever",
             "Works with Free and Pro",
             "Height and blocks configurable",
         ],
@@ -135,11 +136,12 @@ ADDONS = {
     "antiesp": {
         "name": "Anti-ESP",
         "price": "€5.99",
-        "period": "per month",
+        "period": "one-time, forever",
         "description": "Players and containers behind walls are not sent: ESP, tracers, chams, radar and StorageESP see nothing.",
         "features": [
             "Hides players behind walls (Anti-ESP)",
             "Hides chests and containers behind walls (Anti-StorageESP)",
+            "Pay once, yours forever",
             "Works with Free and Pro",
         ],
     },
@@ -1632,6 +1634,8 @@ def admin_create_key():
         if plan not in plan_ids():
             raise ValueError("Choose a valid plan.")
         days = parse_int(form.get("days"), 0, "Days must be 0 or more (empty = 1 month, 0 = never expires).")
+        if plan == "free":
+            days = 0  # Free keys only carry add-ons, and add-ons never expire
         servers = parse_int(form.get("servers"), 0, "Servers must be 0 (unlimited) or more (empty = plan default).")
         owner = form.get("owner", "").strip()
         if owner and not DISCORD_ID_RE.match(owner):

@@ -91,7 +91,7 @@
 
       <div class="action">
         <h3>{{ _("Add-ons") }}</h3>
-        <p class="muted small">{{ _("Anti-XRay and Anti-ESP work only on keys with the add-on. Applies at the server's next restart.") }}</p>
+        <p class="muted small">{{ _("Anti-XRay and Anti-ESP work only on keys with the add-on. Add-ons never expire: when Pro expires the key keeps them as Free. Applies at the server's next restart.") }}</p>
         <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='addons') }}" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           {% for a, addon in ADDONS.items() %}<label class="check"><input type="checkbox" name="addons" value="{{ a }}" {% if a in (k.addons or []) %}checked{% endif %}> {{ addon.name }}</label>{% endfor %}

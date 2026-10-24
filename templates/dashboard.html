@@ -175,7 +175,7 @@
           <span class="badge badge-{{ key }}">{{ tier.name }}</span>
           <b>{{ tier.price }}<small class="muted"> {{ _(tier.period) }}</small></b>
         </div>
-        {% if key in ADDONS %}<p class="lifetime-note">{{ _("Add-on for Free or Pro") }}</p>{% endif %}
+        {% if key in ADDONS %}<p class="lifetime-note">{{ _("Add-on for Free or Pro, never expires") }}</p>{% endif %}
         <p class="muted small">{{ _(tier.description) }}</p>
         {% if SUPPORT_DISCORD %}
           <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>

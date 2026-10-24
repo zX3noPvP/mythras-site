@@ -46,7 +46,7 @@
         </select>
       </label>
       <fieldset class="addon-picks">
-        <legend>{{ _("Add-ons") }}</legend>
+        <legend>{{ _("Add-ons") }} <span class="muted small">· {{ _("never expire; a Free key with add-ons never expires") }}</span></legend>
         {% for a, addon in ADDONS.items() %}<label class="check"><input type="checkbox" name="addons" value="{{ a }}" {% if a in (form.addons or []) %}checked{% endif %}> {{ addon.name }}</label>{% endfor %}
       </fieldset>
       <label>{{ _("Days") }}
