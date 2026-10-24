@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav with context %}
+{% block title %}{{ _("Payments") }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin</p>
+      <h1>{{ _("Payments") }}</h1>
+      <p class="muted small">{% if PAYPAL %}{{ _("PayPal mode: %(mode)s. Pro is a monthly subscription, add-ons are one-time payments. Keys are created and renewed automatically.", mode=paypal_mode) }}{% else %}{{ _("PayPal is not configured: set the PAYPAL_* variables on the server.") }}{% endif %}</p>
+    </div>
+  </header>
+  {{ admin_nav('payments') }}
+  <section class="panel">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">#</th><th scope="col">{{ _("Date") }}</th><th scope="col">{{ _("Customer") }}</th><th scope="col">{{ _("Product") }}</th><th scope="col">{{ _("Amount") }}</th><th scope="col">{{ _("Key") }}</th><th scope="col">{{ _("Status") }}</th><th scope="col"><span class="sr-only">{{ _("Actions") }}</span></th></tr></thead>
+        <tbody>
+          {% for p in rows %}
+          <tr>
+            <td class="mono small">{{ p.id }}</td>
+            <td class="small nowrap">{{ p.created_at|date }}</td>
+            <td class="small">{{ names.get(p.discord_id) or p.discord_id }}</td>
+            <td class="small">{% if p.kind == 'pro' %}<span class="badge badge-pro">Pro</span> {{ _("subscription") }}{% if p.months_applied %} · {{ _("%(n)s months paid", n=p.months_applied) }}{% endif %}{% else %}<span class="badge badge-addon">{{ p.addon|plan_name }}</span>{% endif %}<br><span class="mono muted">{{ p.paypal_id or '—' }}</span></td>
+            <td class="mono small">{{ p.amount }} {{ p.currency }}</td>
+            <td class="mono small">{% if p.license_key %}<a href="{{ url_for('admin_key', key=p.license_key) }}">{{ p.license_key }}</a>{% else %}—{% endif %}</td>
+            <td class="small">
+              {% if p.status == 'fulfilled' %}<span class="status-dot">{{ _("Delivered") }}</span>
+              {% elif p.status in ('paid', 'delivering') %}<span class="status-dot is-bad">{{ _("Paid, key not delivered") }}</span>
+              {% elif p.status == 'refunded' %}<span class="status-dot is-bad">{{ _("Refunded") }}</span>
+              {% elif p.status == 'cancelled' %}<span class="status-dot is-off">{{ _("Cancelled") }}</span>
+              {% else %}<span class="status-dot is-off">{{ _("Waiting for payment") }}</span>{% endif %}
+              {% if p.sub_status %}<br><span class="muted">PayPal: {{ p.sub_status }}{% if p.next_billing %} · {{ p.next_billing|date }}{% endif %}</span>{% endif %}
+              {% if p.error %}<br><span class="red">{{ p.error }}</span>{% endif %}
+            </td>
+            <td class="row-actions">
+              {% if p.paypal_id %}
+              <form method="post" action="{{ url_for('admin_sync_payment', pid=p.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-outline btn-sm" type="submit">{{ _("Sync") }}</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="muted">{{ _("No payments yet.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

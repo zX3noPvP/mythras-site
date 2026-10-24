@@ -7,14 +7,17 @@
   <p class="muted">{{ _("Last updated: %(date)s", date="17/10/2026") }}</p>
 
   <h2>{{ _("1. Who sells") }}</h2>
-  <p>{% if LEGAL_CONTROLLER %}{{ _("Mythras AntiCheat is sold by %(seller)s.", seller=LEGAL_CONTROLLER) }}{% if LEGAL_VAT %} ({{ _("VAT number") }} {{ LEGAL_VAT }}){% endif %} {% endif %}{{ _("Orders are placed by opening a ticket on our Discord server: there we confirm the plan, the price and the payment method. Prices are in euro.") }}</p>
+  <p>{% if LEGAL_CONTROLLER %}{{ _("Mythras AntiCheat is sold by %(seller)s.", seller=LEGAL_CONTROLLER) }}{% if LEGAL_VAT %} ({{ _("VAT number") }} {{ LEGAL_VAT }}){% endif %} {% endif %}{% if PAYPAL %}{{ _("Orders are placed on this website and paid with PayPal (PayPal account or card), or by opening a ticket on our Discord server. Prices are in euro.") }}{% else %}{{ _("Orders are placed by opening a ticket on our Discord server: there we confirm the plan, the price and the payment method. Prices are in euro.") }}{% endif %}</p>
 
   <h2>{{ _("2. What you buy") }}</h2>
   <p>{{ _("A one-month license for Mythras AntiCheat Pro and/or the add-ons Anti-XRay and Anti-ESP, which are paid once and do not expire, with a license key linked to your Discord account. The features of the plan and of each add-on are the ones shown on the pricing page at the time of purchase.") }}</p>
-  <p>{{ _("The Pro license does not renew by itself: at the end of the month Pro expires and the plugin goes back to Free, keeping the add-ons you bought. To renew, open a new ticket before it expires and we add one more month to the same key.") }}</p>
+  {% if PAYPAL_PRO %}
+  <p>{{ _("Pro bought on this website is a PayPal subscription: it renews every month and PayPal charges the price shown at the time of purchase, until you cancel. You can cancel at any time from your dashboard or from your PayPal account: you are not charged again and Pro stays active until the end of the month already paid. Add-ons are a single payment.") }}</p>
+  {% endif %}
+  <p>{{ _("The Pro license does not renew by itself: at the end of the month Pro expires and the plugin goes back to Free, keeping the add-ons you bought. To renew, open a new ticket before it expires and we add one more month to the same key.") if not PAYPAL_PRO else _("Pro bought with a Discord ticket does not renew by itself: at the end of the month Pro expires and the plugin goes back to Free, keeping the add-ons you bought.") }}</p>
 
   <h2>{{ _("3. Delivery") }}</h2>
-  <p>{{ _("The key is delivered after the payment, in your dashboard on this website. You also receive the Discord role of your plan.") }}</p>
+  <p>{{ _("The key is delivered after the payment, in your dashboard on this website. You also receive the Discord role of your plan.") }}{% if PAYPAL %} {{ _("With PayPal the key is created automatically as soon as PayPal confirms the payment.") }}{% endif %}</p>
 
   <h2>{{ _("4. Right of withdrawal") }}</h2>
   <p>{{ _("Under EU law you can withdraw from an online purchase within 14 days. For digital content, this right ends once delivery starts, if you asked for immediate delivery and acknowledged it in the ticket before receiving the key.") }}</p>

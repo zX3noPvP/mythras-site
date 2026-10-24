@@ -106,7 +106,7 @@
       <div><span class="expiry-label">{{ _("Expires on") }}</span><b class="expiry-date">{{ k.expires|ms_date }}</b></div>
       <span class="expiry-left">{{ _("1 day left") if k.days_left == 1 else _("%(n)s days left", n=k.days_left) }}</span>
       <p class="expiry-note">
-        {% if k.days_left <= 3 %}{{ _("Expires soon. Renew it with a ticket on our Discord server to keep your checks.") }} <a href="#plans">{{ _("See plans") }}</a>{% endif %}
+        {% if k.days_left <= 3 and not (subscription and subscription.license_key == k.key and subscription.sub_status == 'ACTIVE') %}{{ _("Expires soon. Renew it with a ticket on our Discord server to keep your checks.") if not PAYPAL_PRO else _("Expires soon. Subscribe to Pro below to keep your checks.") }} <a href="#plans">{{ _("See plans") }}</a>{% endif %}
       </p>
     </div>
     {% endif %}
@@ -166,8 +166,27 @@
   <section class="panel" id="plans">
     <div class="panel-head">
       <h2>{{ icon('shield') }}{{ _("Get a plan") }}</h2>
+      {% if PAYPAL %}
+      <p class="muted small">{{ _("Pay with PayPal (account or card): your key is created and shows up on this page right after the payment.") }}</p>
+      {% else %}
       <p class="muted small">{{ _("Purchases happen on our Discord server: open a ticket, we tell you how to pay, and your key appears here right after.") }}</p>
+      {% endif %}
     </div>
+    {% for p in pending_payments %}
+    <div class="flash flash-success" role="status">{{ icon('activity') }}<span>{{ _("Payment received. Your key is being prepared: if it does not show up in a few minutes, contact us on Discord.") }}</span></div>
+    {% endfor %}
+    {% if subscription %}
+    <div class="sub-box">
+      <div>
+        <b>{{ _("Pro subscription") }}</b> · <span class="status-dot {% if subscription.sub_status != 'ACTIVE' %}is-bad{% endif %}">{{ _("Active") if subscription.sub_status == 'ACTIVE' else _("Suspended by PayPal") }}</span>
+        <p class="muted small">{% if subscription.next_billing %}{{ _("Next payment: %(date)s, %(price)s.", date=subscription.next_billing|date, price=TIERS.pro.price) }} {% endif %}{{ _("Renews every month until you cancel. Key: %(key)s", key=subscription.license_key or '…') }}</p>
+      </div>
+      <form method="post" action="{{ url_for('cancel_my_subscription') }}" data-confirm="{{ _('Cancel the Pro subscription? You will not be charged again; Pro stays active until the end of the month you paid.') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-outline btn-sm" type="submit">{{ _("Cancel subscription") }}</button>
+      </form>
+    </div>
+    {% endif %}
     <div class="tier-grid tier-grid-3">
       {% for key, tier in [('pro', TIERS['pro'])] + ADDONS|dictsort %}
       <article class="tier-card {% if key == 'pro' %}is-owned{% endif %}">
@@ -177,7 +196,24 @@
         </div>
         {% if key in ADDONS %}<p class="lifetime-note">{{ _("Add-on for Free or Pro, never expires") }}</p>{% endif %}
         <p class="muted small">{{ _(tier.description) }}</p>
-        {% if SUPPORT_DISCORD %}
+        {% if key == 'pro' and PAYPAL_PRO and subscription %}
+          <p class="small"><span class="status-dot">{{ _("You are subscribed") }}</span></p>
+        {% elif (key == 'pro' and PAYPAL_PRO) or (key != 'pro' and PAYPAL) %}
+          <form method="post" action="{{ url_for('buy_pro') if key == 'pro' else url_for('buy_addon', addon=key) }}" class="buy-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            {% if buy_keys %}
+            <label class="small">{{ _("For which key?") }}
+              <select name="key">
+                <option value="">{{ _("A new key") }}</option>
+                {% for k in buy_keys if not (key in ADDONS and key in (k.addons or [])) %}<option value="{{ k.key }}">{{ k.key[:9] }}… · {{ k.plan|plan_name }}{% for a in k.addons or [] if a in ADDONS %} + {{ ADDONS[a].name }}{% endfor %}</option>{% endfor %}
+              </select>
+            </label>
+            {% endif %}
+            <label class="check consent small"><input type="checkbox" name="consent" value="1" required> <span>{% if key == 'pro' %}{{ _("I accept the Terms of Sale and the monthly renewal until I cancel, and I ask for immediate delivery: I lose the right of withdrawal once the key is active.") }}{% else %}{{ _("I accept the Terms of Sale and ask for immediate delivery: I lose the right of withdrawal once the add-on is active.") }}{% endif %} <a href="{{ url_for('terms') }}" target="_blank">{{ _("Terms of Sale") }}</a></span></label>
+            <button class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" type="submit">{{ _("Subscribe with PayPal") if key == 'pro' else _("Pay with PayPal") }}</button>
+          </form>
+          {% if SUPPORT_DISCORD %}<p class="muted small center">{{ _("or") }} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("buy on Discord") }}</a></p>{% endif %}
+        {% elif SUPPORT_DISCORD %}
           <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
         {% else %}
           <p class="muted small">{{ _("To buy %(name)s, contact support.", name=tier.name) }}</p>
@@ -185,7 +221,7 @@
       </article>
       {% endfor %}
     </div>
-    {% if SUPPORT_DISCORD %}
+    {% if SUPPORT_DISCORD and not PAYPAL %}
     <ol class="steps steps-compact buy-steps">
       <li><span class="step-n">1</span><div><h3>{{ _("Join our Discord") }}</h3><p>{{ _("Use the button above to open our server.") }}</p></div></li>
       <li><span class="step-n">2</span><div><h3>{{ _("Open a ticket") }}</h3><p>{{ _("Tell us the plan you want and your Discord name.") }}</p></div></li>

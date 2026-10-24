@@ -237,7 +237,9 @@
           <a class="btn btn-outline full" href="{{ FREE_LINKS[0].url }}" target="_blank" rel="noopener">{{ _("Download free") }}</a>
           {% if FREE_LINKS|length > 1 %}<p class="free-links small">{{ _("Also on:") }} {% for l in FREE_LINKS[1:] %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
         {% else %}
-        {% if key != 'free' and SUPPORT_DISCORD %}
+        {% if key == 'pro' and PAYPAL_PRO %}
+        <a class="btn btn-primary full" href="{{ url_for('dashboard', _anchor='plans') if current_user else url_for('login', next='/dashboard') }}">{{ _("Subscribe with PayPal") }}</a>
+        {% elif key != 'free' and SUPPORT_DISCORD %}
         <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
         {% else %}
         <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ url_for('dashboard', _anchor='plans') if current_user else url_for('login') }}">
@@ -256,7 +258,9 @@
         <h3>{{ addon.name }}</h3>
         <p class="plan-desc">{{ _(addon.description) }}</p>
         <p class="plan-price">{{ addon.price }}<span>{{ _(addon.period) }}</span></p>
-        {% if SUPPORT_DISCORD %}
+        {% if PAYPAL %}
+        <a class="btn btn-outline full" href="{{ url_for('dashboard', _anchor='plans') if current_user else url_for('login', next='/dashboard') }}">{{ _("Pay with PayPal") }}</a>
+        {% elif SUPPORT_DISCORD %}
         <a class="btn btn-outline full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
         {% endif %}
         <ul class="plan-list">

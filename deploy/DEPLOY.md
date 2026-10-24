@@ -274,15 +274,41 @@ MaxRetentionSec=30day
 ' > /etc/systemd/journald.conf.d/retention.conf && systemctl restart systemd-journald
 ```
 
-## Vendite tramite Discord (nessun pagamento online)
+## Pagamenti PayPal (automatici) e vendite su Discord
 
-Il sito non incassa: i pulsanti **Buy on Discord** aprono il server Discord indicato in `SUPPORT_DISCORD_URL`
-(in `/etc/mythras-site.env`). Il cliente apre un ticket, paghi come preferisci, poi:
+**Pro** = abbonamento PayPal mensile (€19.99, si rinnova finché il cliente non annulla).
+**Anti-XRay / Anti-ESP** = pagamento PayPal unico (€5.99, per sempre). Le chiavi vengono create e rinnovate da sole.
+Senza le variabili `PAYPAL_*` il sito torna ai pulsanti **Buy on Discord** (ticket, chiave creata a mano).
 
-1. **Admin → Crea licenza**: piano, giorni (30 = un mese, 0 = lifetime) e **Discord ID** del cliente come proprietario.
-   La chiave compare subito nella sua dashboard e riceve il ruolo del piano.
-2. **Rinnovo**: apri la chiave in **Admin → Chiavi** e premi **Rinnova (+1 mese)**.
-3. **Rimborso**: **Revoca** o **Elimina** la chiave dalla stessa pagina.
+### Configurazione (una volta, prima in sandbox poi in live)
+
+1. **developer.paypal.com** → accedi con il conto Business → *Apps & Credentials* → scegli **Sandbox** (per provare)
+   o **Live** → *Create App* (tipo Merchant) → copia **Client ID** e **Secret**.
+2. Sul VPS aggiungi a `/etc/mythras-site.env` (mai nel codice, mai in chat):
+   ```
+   PAYPAL_MODE=sandbox
+   PAYPAL_CLIENT_ID=...
+   PAYPAL_CLIENT_SECRET=...
+   ```
+3. Crea il piano Pro e il webhook (stampa le due righe da aggiungere):
+   ```bash
+   set -a; . /etc/mythras-site.env; set +a
+   /opt/mythras-site/.venv/bin/python /opt/mythras-site/tools/paypal_setup.py https://www.mythras.eu
+   ```
+   Aggiungi `PAYPAL_PRO_PLAN_ID=...` e `PAYPAL_WEBHOOK_ID=...` a `/etc/mythras-site.env`, poi
+   `systemctl restart mythras-site`.
+4. Prova in sandbox con un *Personal* account di prova (developer.paypal.com → *Testing tools → Sandbox accounts*).
+5. Per andare live: rifai i punti 1-3 con le credenziali **Live** e `PAYPAL_MODE=live`
+   (togli prima le righe `PAYPAL_PRO_PLAN_ID` e `PAYPAL_WEBHOOK_ID` della sandbox, così lo strumento crea quelle live).
+
+### Ogni giorno
+
+- **Admin → Pagamenti**: ogni pagamento con stato, chiave e mesi pagati. *Pagato, chiave non consegnata* = il server
+  licenze non ha risposto: premi **Sincronizza** (riprova senza addebitare di nuovo).
+- Rimborso di un add-on da PayPal → l'add-on viene tolto dalla chiave in automatico.
+  Rimborso di un mese di Pro → lo vedi segnalato in Pagamenti: sistema la scadenza a mano dalla pagina della chiave.
+- Il cliente annulla l'abbonamento dalla dashboard (o da PayPal): nessun nuovo addebito, Pro resta fino a fine mese.
+- Vendite su Discord restano possibili: **Admin → Crea licenza**, **Rinnova (+1 mese)** come prima.
 
 ## Link di setup (domande per piano) e IP della chiave
 

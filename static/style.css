@@ -878,3 +878,12 @@ input:user-invalid { border-color: var(--red); }
 .addon-picks { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; min-width: 0; }
 .addon-picks legend { font-size: 13px; color: var(--muted); padding: 0; margin-bottom: 6px; width: 100%; }
 .check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+/* PayPal purchase forms in the dashboard */
+.buy-form { display: grid; gap: 10px; margin-top: 4px; }
+.buy-form select { width: 100%; }
+.check.consent { align-items: flex-start; line-height: 1.4; }
+.check.consent input { margin-top: 3px; flex: none; }
+.sub-box { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border: 1px solid var(--border, #222); padding: 12px 14px; margin: 0 0 14px; }
+.sub-box p { margin: 4px 0 0; }
+.center { text-align: center; }
