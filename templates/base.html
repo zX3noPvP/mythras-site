@@ -49,7 +49,7 @@
           <a href="{{ url_for('index') }}#features">{{ _("Features") }}</a>
           <a href="{{ url_for('index') }}#replay">{{ _("Replay") }}</a>
           <a href="{{ url_for('index') }}#ai">{{ _("AI Learning") }}</a>
-          <a href="{{ url_for('index') }}#pricing">{{ _("Pricing") }}</a>
+          <a href="{{ url_for('shop') }}"{% if request.endpoint == 'shop' %} aria-current="page"{% endif %}>{{ _("Shop") }}</a>
           <a href="{{ url_for('docs_page') }}"{% if request.endpoint == 'docs_page' %} aria-current="page"{% endif %}>{{ _("Docs") }}</a>
           <a href="{{ url_for('index') }}#faq">{{ _("FAQ") }}</a>
           <span class="nav-sep" aria-hidden="true"></span>
@@ -116,7 +116,7 @@
         <a href="{{ url_for('index') }}#features">{{ _("Features") }}</a>
         <a href="{{ url_for('index') }}#replay">{{ _("Replay") }}</a>
         <a href="{{ url_for('index') }}#ai">{{ _("AI Learning") }}</a>
-        <a href="{{ url_for('index') }}#pricing">{{ _("Pricing") }}</a>
+        <a href="{{ url_for('shop') }}">{{ _("Shop") }}</a>
         <a href="{{ url_for('docs_page') }}">{{ _("Docs") }}</a>
         <a href="{{ url_for('changelog') }}">{{ _("Changelog") }}</a>
       </div>

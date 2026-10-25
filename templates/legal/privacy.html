@@ -16,7 +16,7 @@
   <ul>
     <li><b>{{ _("Discord account") }}:</b> {{ _("when you sign in we receive your Discord user ID, display name and avatar. We do not ask Discord for your e-mail address and we never see your Discord password.") }}</li>
     <li><b>{{ _("Licenses") }}:</b> {{ _("the keys linked to your account, their plan, status and expiry, and the Minecraft servers that use them (server ID, plugin version, last check-in).") }}</li>
-    {% if PAYPAL %}<li><b>{{ _("Payments") }}:</b> {{ _("when you pay with PayPal we receive the PayPal order or subscription ID, the amount, the status and the dates. Your card or bank details are handled only by PayPal and never reach us.") }}</li>{% endif %}
+    {% if SHOP.enabled %}<li><b>{{ _("Payments") }}:</b> {{ _("when you pay with PayPal we receive the PayPal order or subscription ID, the amount, the status and the dates. Your card or bank details are handled only by PayPal and never reach us.") }}</li>{% endif %}
     <li><b>{{ _("Technical data") }}:</b> {{ _("your IP address and browser details are processed by our server and by Cloudflare to deliver the site and protect it from attacks.") }}</li>
     <li><b>{{ _("Administrators only") }}:</b> {{ _("two-factor authentication data (an encrypted secret and hashed recovery codes) and a log of failed login attempts.") }}</li>
   </ul>
@@ -32,7 +32,7 @@
   <ul>
     <li><b>Discord</b>: {{ _("sign-in and avatar images.") }}</li>
     <li><b>Cloudflare</b>: {{ _("network delivery and protection against attacks.") }}</li>
-    {% if PAYPAL %}<li><b>PayPal (Europe) S.à r.l. et Cie, S.C.A.</b>: {{ _("payments, as an independent controller under its own privacy statement.") }}</li>{% endif %}
+    {% if SHOP.enabled %}<li><b>PayPal (Europe) S.à r.l. et Cie, S.C.A.</b>: {{ _("payments, as an independent controller under its own privacy statement.") }}</li>{% endif %}
     <li>{{ _("The provider that hosts our server.") }}</li>
   </ul>
   <p>{{ _("Discord and Cloudflare may process data outside the EU. These transfers are covered by the EU-US Data Privacy Framework or by the European Commission's standard contractual clauses.") }}</p>
@@ -41,7 +41,7 @@
   <ul>
     <li>{{ _("Account data: until you ask us to delete your account.") }}</li>
     <li>{{ _("License data: as long as the license exists, and longer only where the law requires it (for example, invoices).") }}</li>
-    {% if PAYPAL %}<li>{{ _("Payment records: 10 years, as required by Italian tax law.") }}</li>{% endif %}
+    {% if SHOP.enabled %}<li>{{ _("Payment records: 10 years, as required by Italian tax law.") }}</li>{% endif %}
     <li>{{ _("Server logs: up to 30 days.") }}</li>
   </ul>
 

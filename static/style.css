@@ -884,6 +884,13 @@ input:user-invalid { border-color: var(--red); }
 .buy-form select { width: 100%; }
 .check.consent { align-items: flex-start; line-height: 1.4; }
 .check.consent input { margin-top: 3px; flex: none; }
-.sub-box { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border: 1px solid var(--border, #222); padding: 12px 14px; margin: 0 0 14px; }
-.sub-box p { margin: 4px 0 0; }
+.license-buy { display: flex; flex-wrap: wrap; gap: var(--s2); padding: 0 var(--s5) var(--s4); }
+.addon-owned { display: inline-flex; gap: 6px; align-items: center; margin-right: var(--s3); }
+.shop .section-head { margin-bottom: var(--s5); }
+.shop .compare-wrap { margin-top: var(--s6); }
+.shop-login { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; justify-content: space-between; padding: var(--s4) var(--s5); margin-bottom: var(--s5); }
+.shop-login p { margin: 0; }
+.plan .owned { margin: 0; }
+.shop-wait { padding: var(--s6) var(--s5); text-align: center; }
+.shop-done pre.mono { background: #050505; border: 1px solid var(--line); padding: var(--s3); overflow-x: auto; }
 .center { text-align: center; }

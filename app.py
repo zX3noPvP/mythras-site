@@ -44,7 +44,6 @@ import i18n  # noqa: E402
 import mythras_api  # noqa: E402  (reads env after load_dotenv)
 import downloads  # noqa: E402
 import setup_forms  # noqa: E402
-import payments  # noqa: E402
 import docs  # noqa: E402
 from mythras_api import MythrasError  # noqa: E402
 
@@ -62,7 +61,7 @@ DISCORD_REDIRECT_URI = os.getenv(
 ADMIN_IDS = {x.strip() for x in os.getenv("ADMIN_DISCORD_IDS", "").split(",") if x.strip()}
 DATABASE = Path(os.getenv("DATABASE_PATH", BASE_DIR / "data" / "mythras.db"))
 
-# Discord server invite: support, and purchases by ticket (PayPal on the site is in payments.py, PAYPAL_* env)
+# Discord server invite: support, and purchases by ticket (the PayPal shop is run by the license server, /api/shop)
 SUPPORT_DISCORD = os.getenv("SUPPORT_DISCORD_URL", "")
 # the Discord bot creates setup links with POST /api/bot/invites and this token (empty = bot API off)
 BOT_API_TOKEN = os.getenv("BOT_API_TOKEN", "")
@@ -112,10 +111,10 @@ TIERS = {
             "Replays kept for 7 days",
             "Whitelist and exemptions, combat mitigations, health filter",
             "Folia, cross-server alerts, developer API, PlaceholderAPI",
-            "Unlimited servers (multi-server)",
+            "1 server per key",
             "Add-ons available",
             "Priority support",
-            "Monthly license: buy and renew on Discord",
+            "Monthly PayPal subscription, cancel any time",
         ],
     },
 }
@@ -233,7 +232,6 @@ def init_db():
     db.executescript(SCHEMA)
     db.executescript(admin_2fa.SCHEMA)
     setup_forms.init(db)
-    payments.init(db)
     have = {r[1] for r in db.execute("PRAGMA table_info(orders)")}
     for col in ("subscription_id", "sub_status", "renews_at", "ends_at"):
         if col not in have:  # databases created before monthly plans
@@ -442,8 +440,8 @@ app.before_request_funcs.setdefault(None, []).insert(0, allow_large_upload)
 
 @app.before_request
 def check_csrf():
-    # the bot API and the PayPal webhook have no cookies: they are authenticated by a token / PayPal's signature
-    if request.method == "POST" and not request.path.startswith("/api/bot/") and request.path != "/webhooks/paypal":
+    # the bot API has no cookies: it is authenticated by its own token instead
+    if request.method == "POST" and not request.path.startswith("/api/bot/"):
         sent = request.form.get("csrf_token", "")
         expected = session.get("csrf_token", "")
         if not expected or not secrets.compare_digest(sent, expected):
@@ -468,7 +466,7 @@ def security_headers(resp):
         "connect-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
-        "form-action 'self'" + ("".join(" " + h for h in payments.checkout_hosts()) if payments.enabled() else ""),
+        "form-action 'self' " + " ".join(PAYPAL_HOSTS),  # "Buy" posts here, then we redirect to PayPal
         "frame-ancestors 'none'",
     ]
     if PRODUCTION:
@@ -591,8 +589,8 @@ def addons_from_form(form):
 def inject_globals():
     return {
         "csrf_token": csrf_token(),
-        "PAYPAL": payments.enabled(),
-        "PAYPAL_PRO": payments.pro_enabled(),
+        "SHOP": shop_info(),
+        "price_of": price_of,
         "csp_nonce": csp_nonce(),
         "current_user": current_user(),
         "is_admin": is_admin(current_user()),
@@ -832,16 +830,18 @@ def dashboard():
         k["days_left"] = math.ceil(left / DAY_MS) if k.get("expires") and left > 0 else 0
     active = [k for k in keys if k.get("status") == "active"]
     latest_jar = downloads.latest()
-    db = get_db()
-    subscription = payments.active_subscription(db, user["discord_id"])
-    pending = db.execute("SELECT * FROM payments WHERE discord_id = ? AND status IN ('paid', 'delivering')"
-                         " ORDER BY id DESC LIMIT 5", (user["discord_id"],)).fetchall()
+    purchases = []
+    if not api_error:
+        try:
+            purchases = mythras_api.user_purchases(user["discord_id"])
+        except MythrasError:
+            purchases = []
+    renews = {p["key"]: p for p in purchases if p.get("item") == "pro" and p.get("status") == "ACTIVE" and p.get("key")}
     return render_template(
         "dashboard.html",
         keys=keys,
-        subscription=subscription,
-        pending_payments=pending,
-        buy_keys=[k for k in keys if k.get("status") != "revoked"],
+        purchases=purchases,
+        renews=renews,
         download=latest_jar if active else None,
         download_exists=latest_jar is not None,
         active_count=len(active),
@@ -1180,188 +1180,183 @@ def admin_reset_questions():
     return redirect(url_for("admin_questions"))
 
 
-# ---------- PayPal: Pro subscription and one-time add-ons (payments.py does the PayPal calls) ----------
+# ---------- shop: the license server runs PayPal (API-SITO.md "Payments"); the site starts and confirms ----------
+# The site never decides that someone paid: it only tells the license server which PayPal id came back.
 
-def price_value(price):
-    """'€19.99' -> '19.99' (the amount PayPal is asked for)."""
-    return price.replace("€", "").strip()
-
-
-def buy_target_key(form):
-    """The buyer's own key chosen in the form, or None for a new key."""
-    key = normalize_key(form.get("key")) if form.get("key") else None
-    if form.get("key") and not key:
-        raise ValueError("Choose one of your keys, or a new key.")
-    return key
-
-
-def payment_error(err):
-    log.warning("PayPal: %s", err.message)
-    flash(t("PayPal is not available right now. Try again in a few minutes or buy on our Discord server."), "error")
-    return redirect(url_for("dashboard", _anchor="plans"))
+PAYPAL_HOSTS = ("https://www.paypal.com", "https://www.sandbox.paypal.com")
+PURCHASE_ID_RE = re.compile(r"^[A-Za-z0-9-]{5,64}$")
+SHOP_ITEMS = ("pro",) + ADDON_IDS
+SHOP_TTL = 60
+_shop_cache = {"at": 0.0, "data": None}
+PURCHASE_STATES = {
+    "ACTIVE": "Active", "COMPLETED": "Paid", "APPROVAL_PENDING": "Waiting for payment", "PENDING": "Waiting for payment",
+    "CREATED": "Waiting for payment", "APPROVED": "Waiting for payment", "CANCELLED": "Cancelled",
+    "SUSPENDED": "Payment failed", "EXPIRED": "Ended", "REFUNDED": "Refunded",
+}
+PAID_STATES = ("ACTIVE", "COMPLETED")
+WAITING_STATES = ("APPROVAL_PENDING", "PENDING", "CREATED", "APPROVED")
 
 
-@app.post("/billing/pro")
-@login_required
-def buy_pro():
-    if not payments.pro_enabled():
-        abort(404)
+def shop_info():
+    """GET /api/shop, cached for a minute: {enabled, mode, currency, items: {item: {...}}}. Disabled if unreachable."""
+    if _shop_cache["data"] is None or time.time() - _shop_cache["at"] > SHOP_TTL:
+        try:
+            data = mythras_api.shop()
+            data["items"] = {i["item"]: i for i in data.get("items") or [] if i.get("item") in SHOP_ITEMS}
+        except MythrasError:
+            data = {"enabled": False, "mode": "", "currency": "EUR", "items": {}}
+        _shop_cache.update(at=time.time(), data=data)
+    return _shop_cache["data"]
+
+
+def money(value, currency="EUR"):
+    return ("€" if currency == "EUR" else currency + " ") + str(value)
+
+
+def price_of(item, fallback=""):
+    """Price shown on the site: from the license server's shop when it answers, else the fallback text."""
+    info = shop_info()
+    it = info["items"].get(item)
+    return money(it["price"], info.get("currency", "EUR")) if it and it.get("price") else fallback
+
+
+def can_buy(item):
+    info = shop_info()
+    it = info["items"].get(item)
+    return bool(info.get("enabled") and it and it.get("available", True))
+
+
+@app.template_filter("purchase_state")
+def purchase_state(status):
+    return t(PURCHASE_STATES.get(status or "", "Unknown"))
+
+
+@app.get("/shop")
+def shop():
     user = current_user()
-    db = get_db()
+    keys, owned = [], {}
+    if user:
+        try:
+            keys = [k for k in mythras_api.user_keys(user["discord_id"]).get("keys", []) if k.get("status") != "revoked"]
+        except MythrasError:
+            keys = []
+    return render_template("shop.html", keys=keys, free_keys=[k for k in keys if k.get("plan") == "free"],
+                           addon_slots={a: [k for k in keys if a not in (k.get("addons") or [])] for a in ADDON_IDS},
+                           pick_key=normalize_key(request.args.get("key")) or "", pick_item=request.args.get("item", ""),
+                           DOCS=docs)
+
+
+@app.post("/shop/buy")
+@login_required
+def shop_buy():
+    user = current_user()
+    item = request.form.get("item", "")
+    key = normalize_key(request.form.get("key")) if request.form.get("key") else ""
+    back = redirect(url_for("shop", _anchor=item if item in SHOP_ITEMS else None))
+    if item not in SHOP_ITEMS or not can_buy(item):
+        flash(t("This item is not for sale right now."), "error")
+        return back
+    if request.form.get("key") and not key:
+        flash(t("Choose one of your keys, or a new key."), "error")
+        return back
     if request.form.get("consent") != "1":
         flash(t("Tick the box to accept the Terms of Sale and the immediate delivery."), "error")
-        return redirect(url_for("dashboard", _anchor="plans"))
-    if payments.active_subscription(db, user["discord_id"]):
-        flash(t("You already have an active Pro subscription."), "error")
-        return redirect(url_for("dashboard", _anchor="plans"))
+        return back
     try:
-        url = payments.start_pro(db, user["discord_id"], buy_target_key(request.form), price_value(TIERS["pro"]["price"]),
-                                 url_for("billing_subscribed", _external=True), url_for("billing_cancelled", _external=True))
-    except ValueError as err:
-        flash(t(str(err)), "error")
-        return redirect(url_for("dashboard", _anchor="plans"))
-    except payments.PayPalError as err:
-        return payment_error(err)
-    log.info("PayPal subscription started by %s", user["discord_id"])
-    return redirect(url, 303)
-
-
-@app.post("/billing/addon/<addon>")
-@login_required
-def buy_addon(addon):
-    if not payments.enabled() or addon not in ADDONS:
-        abort(404)
-    user = current_user()
-    if request.form.get("consent") != "1":
-        flash(t("Tick the box to accept the Terms of Sale and the immediate delivery."), "error")
-        return redirect(url_for("dashboard", _anchor="plans"))
-    try:
-        url = payments.start_addon(get_db(), user["discord_id"], addon, buy_target_key(request.form),
-                                   price_value(ADDONS[addon]["price"]), ADDONS[addon]["name"],
-                                   url_for("billing_return", _external=True), url_for("billing_cancelled", _external=True))
-    except ValueError as err:
-        flash(t(str(err)), "error")
-        return redirect(url_for("dashboard", _anchor="plans"))
-    except payments.PayPalError as err:
-        return payment_error(err)
-    log.info("PayPal order for %s started by %s", addon, user["discord_id"])
-    return redirect(url, 303)
-
-
-def _own_payment(paypal_id):
-    """A payment of the signed-in user (the PayPal id in the return URL alone proves nothing)."""
-    row = payments.by_paypal_id(get_db(), paypal_id) if paypal_id else None
-    if row is None or row["discord_id"] != current_user()["discord_id"]:
-        abort(404)
-    return row
-
-
-def _flash_payment(row):
-    if row["status"] == "fulfilled":
-        flash(t("Payment received, thank you! Your license is ready: key %(key)s.", key=row["license_key"]), "success")
-    elif row["status"] in ("paid", "delivering"):
-        flash(t("Payment received. Your key is being prepared: if it does not show up in a few minutes, contact us on Discord."), "success")
-    elif row["status"] == "cancelled":
-        flash(t("Payment cancelled. You were not charged."), "error")
-    else:
-        flash(t("We are waiting for PayPal to confirm the payment. Your key shows up here as soon as it does."), "success")
-
-
-@app.get("/billing/return")
-@login_required
-def billing_return():
-    row = _own_payment(request.args.get("token", ""))
-    try:
-        row = payments.sync_order(get_db(), row["paypal_id"]) or row
-    except payments.PayPalError as err:
-        log.warning("PayPal return for payment %s: %s", row["id"], err.message)
-    _flash_payment(row)
-    return redirect(url_for("dashboard"))
-
-
-@app.get("/billing/subscribed")
-@login_required
-def billing_subscribed():
-    row = _own_payment(request.args.get("subscription_id", ""))
-    try:
-        row = payments.sync_subscription(get_db(), row["paypal_id"]) or row
-    except payments.PayPalError as err:
-        log.warning("PayPal return for subscription %s: %s", row["id"], err.message)
-    _flash_payment(row)
-    return redirect(url_for("dashboard"))
-
-
-@app.get("/billing/cancelled")
-@login_required
-def billing_cancelled():
-    paypal_id = request.args.get("subscription_id") or request.args.get("token", "")
-    row = payments.by_paypal_id(get_db(), paypal_id) if paypal_id else None
-    if row is not None and row["discord_id"] == current_user()["discord_id"] and row["status"] == "created":
-        db = get_db()
-        db.execute("UPDATE payments SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = 'created'",
-                   (now_iso(), row["id"]))
-        db.commit()
-    flash(t("Payment cancelled. You were not charged."), "error")
-    return redirect(url_for("dashboard", _anchor="plans"))
-
-
-@app.post("/billing/subscription/cancel")
-@login_required
-def cancel_my_subscription():
-    db = get_db()
-    row = payments.active_subscription(db, current_user()["discord_id"])
-    if row is None:
-        abort(404)
-    try:
-        payments.cancel_subscription(db, row)
-    except payments.PayPalError as err:
-        return payment_error(err)
-    log.info("PayPal subscription %s cancelled by its owner", row["id"])
-    flash(t("Subscription cancelled: you will not be charged again. Pro stays active until the end of the month you paid."), "success")
-    return redirect(url_for("dashboard"))
-
-
-@app.post("/webhooks/paypal")
-def paypal_webhook():
-    if not payments.enabled():
-        abort(404)
-    event = request.get_json(silent=True)
-    if not isinstance(event, dict) or not payments.verify_webhook(request.headers, event):
-        log.warning("PayPal webhook refused (signature not verified)")
-        return jsonify(ok=False), 400
-    try:
-        payments.handle_event(get_db(), event, log)
-    except payments.PayPalError as err:
-        # PayPal retries failed deliveries: answer 503 so this event comes back later
-        log.warning("PayPal webhook %s: %s", event.get("event_type"), err.message)
-        return jsonify(ok=False), 503
-    return jsonify(ok=True)
-
-
-@app.get("/admin/payments")
-@admin_required
-def admin_payments():
-    rows = get_db().execute("SELECT * FROM payments ORDER BY id DESC LIMIT 200").fetchall()
-    return render_template("admin/payments.html", rows=rows, names=known_names(), paypal_mode=payments.mode())
-
-
-@app.post("/admin/payments/<int:pid>/sync")
-@admin_required
-def admin_sync_payment(pid):
-    db = get_db()
-    row = db.execute("SELECT * FROM payments WHERE id = ?", (pid,)).fetchone()
-    if row is None:
-        abort(404)
-    if row["status"] == "delivering":  # a delivery that crashed half-way: let this sync retry it
-        db.execute("UPDATE payments SET status = 'paid' WHERE id = ?", (pid,))
-        db.commit()
-        row = db.execute("SELECT * FROM payments WHERE id = ?", (pid,)).fetchone()
-    try:
-        row = payments.sync(db, row) or row
-        flash(t("Payment %(id)s synced with PayPal: %(status)s.", id=pid, status=row["status"]), "success")
-    except payments.PayPalError as err:
+        started = mythras_api.user_subscribe(user["discord_id"], item, key=key, name=user["username"])
+    except MythrasError as err:
         flash(err.message, "error")
-    return redirect(url_for("admin_payments"))
+        return back
+    url = str(started.get("approveUrl") or "")
+    if not url.startswith(tuple(h + "/" for h in PAYPAL_HOSTS)):  # only ever send the browser to PayPal
+        log.warning("Shop: unexpected approveUrl for %s", item)
+        flash(t("PayPal is not available right now. Try again in a few minutes or buy on our Discord server."), "error")
+        return back
+    log.info("Shop: %s started by %s (%s)", item, user["discord_id"], started.get("id"))
+    return redirect(url, 303)
+
+
+def confirm_purchase(purchase_id):
+    """Ask the license server about this purchase (it reads PayPal). Returns (purchase, key, error)."""
+    user = current_user()
+    try:
+        data = mythras_api.user_confirm(user["discord_id"], purchase_id, name=user["username"])
+    except MythrasError as err:
+        return None, None, err.message
+    return data.get("subscription") or {}, data.get("key"), None
+
+
+@app.get("/shop/done")
+def shop_done():
+    if current_user() is None:
+        return redirect(url_for("login", next=request.full_path.rstrip("?")))
+    purchase_id = request.args.get("subscription_id") or request.args.get("token") or ""
+    if not PURCHASE_ID_RE.match(purchase_id):
+        return redirect(url_for("shop"))
+    purchase, key, error = confirm_purchase(purchase_id)
+    state = "error" if error else ("paid" if purchase.get("status") in PAID_STATES
+                                   else "waiting" if purchase.get("status") in WAITING_STATES else "other")
+    if state == "paid":
+        log.info("Shop: %s %s paid by %s", purchase.get("item"), purchase_id, current_user()["discord_id"])
+    latest_jar = downloads.latest()
+    return render_template("shop_done.html", purchase=purchase, key=key, error=error, state=state,
+                           purchase_id=purchase_id, download_exists=latest_jar is not None)
+
+
+@app.post("/shop/done/check")
+@login_required
+def shop_done_check():
+    """Polled by the "Waiting for PayPal" page (same site only): asks the license server again."""
+    purchase_id = request.form.get("id", "")
+    if not PURCHASE_ID_RE.match(purchase_id):
+        abort(404)
+    purchase, _key, error = confirm_purchase(purchase_id)
+    status = (purchase or {}).get("status", "")
+    return jsonify(ok=error is None, paid=status in PAID_STATES, waiting=status in WAITING_STATES)
+
+
+@app.post("/shop/purchases/<purchase_id>/cancel")
+@login_required
+def cancel_my_purchase(purchase_id):
+    if not PURCHASE_ID_RE.match(purchase_id):
+        abort(404)
+    user = current_user()
+    try:
+        mythras_api.user_cancel(user["discord_id"], purchase_id, name=user["username"])
+        flash(t("Subscription cancelled: you will not be charged again. Pro stays active until the end of the month you paid."), "success")
+        log.info("Shop: subscription %s cancelled by its owner", purchase_id)
+    except MythrasError as err:
+        flash(err.message, "error")
+    return redirect(url_for("dashboard", _anchor="purchases"))
+
+
+@app.get("/admin/purchases")
+@admin_required
+def admin_purchases():
+    owner = request.args.get("owner", "").strip()
+    rows, api_error = [], None
+    try:
+        rows = mythras_api.purchases(owner=owner if DISCORD_ID_RE.match(owner) else None)
+    except MythrasError as err:
+        api_error = err.message
+    return render_template("admin/purchases.html", rows=rows, owner=owner, names=known_names(), api_error=api_error)
+
+
+@app.post("/admin/purchases/<purchase_id>/<action>")
+@admin_required
+def admin_purchase_action(purchase_id, action):
+    if not PURCHASE_ID_RE.match(purchase_id) or action not in ("sync", "cancel"):
+        abort(404)
+    try:
+        if action == "sync":
+            row = mythras_api.purchase_sync(purchase_id, actor=actor_name())
+            flash(t("Synced from PayPal: %(status)s.", status=purchase_state(row.get("status"))), "success")
+        else:
+            mythras_api.purchase_cancel(purchase_id, actor=actor_name())
+            flash(t("Subscription cancelled at PayPal. The key keeps working until its expiry."), "success")
+    except MythrasError as err:
+        flash(err.message, "error")
+    return redirect(url_for("admin_purchases", owner=request.form.get("owner") or None))
 
 
 # ---------- Discord bot API (token, no cookies): create a setup link ----------

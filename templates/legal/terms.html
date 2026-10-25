@@ -4,29 +4,34 @@
 <article class="container legal">
   <p class="kicker">{{ _("Legal") }}</p>
   <h1>{{ _("Terms of Sale") }}</h1>
-  <p class="muted">{{ _("Last updated: %(date)s", date="17/10/2026") }}</p>
+  <p class="muted">{{ _("Last updated: %(date)s", date="25/10/2026") }}</p>
 
   <h2>{{ _("1. Who sells") }}</h2>
-  <p>{% if LEGAL_CONTROLLER %}{{ _("Mythras AntiCheat is sold by %(seller)s.", seller=LEGAL_CONTROLLER) }}{% if LEGAL_VAT %} ({{ _("VAT number") }} {{ LEGAL_VAT }}){% endif %} {% endif %}{% if PAYPAL %}{{ _("Orders are placed on this website and paid with PayPal (PayPal account or card), or by opening a ticket on our Discord server. Prices are in euro.") }}{% else %}{{ _("Orders are placed by opening a ticket on our Discord server: there we confirm the plan, the price and the payment method. Prices are in euro.") }}{% endif %}</p>
+  <p>{% if LEGAL_CONTROLLER %}{{ _("Mythras AntiCheat is sold by %(seller)s.", seller=LEGAL_CONTROLLER) }}{% if LEGAL_VAT %} ({{ _("VAT number") }} {{ LEGAL_VAT }}){% endif %} {% endif %}{% if SHOP.enabled %}{{ _("Orders are placed in the shop on this website and paid with PayPal (PayPal account or card), or by opening a ticket on our Discord server. Prices are in euro.") }}{% else %}{{ _("Orders are placed by opening a ticket on our Discord server: there we confirm the plan, the price and the payment method. Prices are in euro.") }}{% endif %}</p>
 
   <h2>{{ _("2. What you buy") }}</h2>
-  <p>{{ _("A one-month license for Mythras AntiCheat Pro and/or the add-ons Anti-XRay and Anti-ESP, which are paid once and do not expire, with a license key linked to your Discord account. The features of the plan and of each add-on are the ones shown on the pricing page at the time of purchase.") }}</p>
-  {% if PAYPAL_PRO %}
-  <p>{{ _("Pro bought on this website is a PayPal subscription: it renews every month and PayPal charges the price shown at the time of purchase, until you cancel. You can cancel at any time from your dashboard or from your PayPal account: you are not charged again and Pro stays active until the end of the month already paid. Add-ons are a single payment.") }}</p>
-  {% endif %}
-  <p>{{ _("The Pro license does not renew by itself: at the end of the month Pro expires and the plugin goes back to Free, keeping the add-ons you bought. To renew, open a new ticket before it expires and we add one more month to the same key.") if not PAYPAL_PRO else _("Pro bought with a Discord ticket does not renew by itself: at the end of the month Pro expires and the plugin goes back to Free, keeping the add-ons you bought.") }}</p>
+  <ul>
+    <li>{{ _("<b>Pro</b>: a monthly license for Mythras AntiCheat Pro, for 1 server per key.")|safe }}</li>
+    <li>{{ _("<b>Add-ons</b> Anti-XRay and Anti-ESP (with Anti-StorageESP): a single payment each; the add-on stays on the chosen key, Free or Pro, for ever. Without a key you get a Free key that carries it.")|safe }}</li>
+  </ul>
+  <p>{{ _("Every key is linked to your Discord account. The features of the plan and of each add-on are the ones shown in the shop at the time of purchase.") }}</p>
 
-  <h2>{{ _("3. Delivery") }}</h2>
-  <p>{{ _("The key is delivered after the payment, in your dashboard on this website. You also receive the Discord role of your plan.") }}{% if PAYPAL %} {{ _("With PayPal the key is created automatically as soon as PayPal confirms the payment.") }}{% endif %}</p>
+  <h2>{{ _("3. Payments and refunds") }}</h2>
+  <ul>
+    <li>{{ _("Pro bought in the shop is a PayPal subscription: it renews every month at the price shown when you subscribed, until you cancel. You can cancel at any time from your customer area or from your PayPal account: you are not charged again and the key keeps working until the end of the month already paid.") }}</li>
+    <li>{{ _("Pro bought with a Discord ticket does not renew by itself: at the end of the month Pro expires. To renew, open a new ticket before it expires and we add one more month to the same key.") }}</li>
+    <li>{{ _("When Pro ends, a key that has add-ons becomes a Free key that never expires, and its add-ons keep working.") }}</li>
+    <li>{{ _("If the key does not work and we cannot fix the problem, contact support within 14 days of a payment and we will refund that payment. A refund (or a chargeback) removes what it paid for: the Pro key ends at once, or the add-on is taken off the key.") }}</li>
+  </ul>
 
-  <h2>{{ _("4. Right of withdrawal") }}</h2>
-  <p>{{ _("Under EU law you can withdraw from an online purchase within 14 days. For digital content, this right ends once delivery starts, if you asked for immediate delivery and acknowledged it in the ticket before receiving the key.") }}</p>
+  <h2>{{ _("4. Delivery") }}</h2>
+  <p>{{ _("The key is delivered after the payment, in your customer area on this website, together with the Discord role of your plan. With PayPal it is created automatically as soon as PayPal confirms the payment; an add-on turns on by itself within a few minutes.") }}</p>
 
-  <h2>{{ _("5. Refunds") }}</h2>
-  <p>{{ _("If the key does not work and we cannot fix the problem, contact support within 14 days of a payment and we will refund that payment. Refunded keys are revoked.") }}</p>
+  <h2>{{ _("5. Right of withdrawal") }}</h2>
+  <p>{{ _("Under EU law you can withdraw from an online purchase within 14 days. For digital content, this right ends once delivery starts, if you asked for immediate delivery and acknowledged it before paying (in the shop or in the ticket).") }}</p>
 
   <h2>{{ _("6. Use of the license") }}</h2>
-  <p>{{ _("A key is for your own Minecraft servers, within the server limit of its plan. Do not resell or share keys: keys used against these terms may be revoked without refund.") }}</p>
+  <p>{{ _("A key is for your own Minecraft server: 1 server per key. Do not resell or share keys: keys used against these terms may be revoked without refund.") }}</p>
 
   <h2>{{ _("7. Applicable law") }}</h2>
   <p>{{ _("These terms are governed by Italian law. If you are a consumer, you keep the protections of the mandatory law of your country of residence.") }}</p>

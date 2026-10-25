@@ -9,7 +9,28 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 TOKEN = "test-token"
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5055
 DAY = 86_400_000
-PLANS = {"free": 1, "pro": 0}
+PLANS = {"free": 1, "pro": 1}
+# shop (license server 1.11): PayPal is handled here; tests flip SHOP["enabled"] / mode and use pay() to "approve"
+SHOP = {"enabled": True, "mode": "sandbox", "currency": "EUR"}
+SHOP_ITEMS = [
+    {"item": "pro", "name": "Mythras Pro", "price": "19.99", "addon": False, "billing": "monthly", "available": True},
+    {"item": "antixray", "name": "Anti-XRay add-on", "price": "5.99", "addon": True, "billing": "once", "available": True},
+    {"item": "antiesp", "name": "Anti-ESP add-on", "price": "5.99", "addon": True, "billing": "once", "available": True},
+]
+purchases = {}   # id -> purchase dict (+ "_paid" flag set by pay())
+
+
+def pay(pid):
+    """Test helper: the buyer approved on PayPal."""
+    purchases[pid]["_paid"] = True
+
+
+def charge_month(pid):
+    """Test helper: PayPal charged one more month of a Pro subscription."""
+    p = purchases[pid]
+    k = keys[p["key"]]
+    k["expires"] = max(now(), k["expires"] or now()) + 30 * DAY
+    p["nextBilling"] = k["expires"] - 3 * DAY
 ADDONS = ("antixray", "antiesp")
 RESET_HOURS = 24
 now = lambda: int(time.time() * 1000)
@@ -39,7 +60,9 @@ def view(k, admin=True, detail=False):
         "customMaxServers": k["custom"], "activeServers": sum(1 for s in k["servers"] if s["active"]),
         "nextReset": k["nextReset"],
         "ips": list(k.get("ips") or []),
-        "addons": list(k.get("addons") or []),
+        "addons": sorted(k.get("addons") or []),
+        "addonDetails": [{"addon": a, "name": {"antixray": "Anti-XRay add-on", "antiesp": "Anti-ESP add-on"}[a],
+                          "expires": 0, "active": status == "active"} for a in sorted(k.get("addons") or [])],
     }
     if admin:
         out["config"] = dict(k.get("config") or {})
@@ -160,6 +183,114 @@ def panel_answer(self, path, q, owner=None):
     return self.fail("Unknown endpoint", 404)
 
 
+
+def purchase_view(p):
+    return {k: v for k, v in p.items() if not k.startswith("_")}
+
+
+def confirm_purchase(p, actor):
+    """Apply a purchase once PayPal says it is paid (mock of what the real server reads from PayPal)."""
+    if not p.get("_paid") or p["status"] in ("ACTIVE", "COMPLETED", "CANCELLED", "REFUNDED"):
+        return
+    uid = p["owner"]
+    if p["item"] == "pro":
+        k = keys.get(p.get("_target") or "")
+        if k:
+            k["plan"] = "pro"
+            k["expires"] = now() + 33 * DAY
+        else:
+            kid = new_key_id()
+            keys[kid] = k = {"key": kid, "plan": "pro", "status": "active", "note": "PayPal", "created": now(),
+                             "expires": now() + 33 * DAY, "owner": uid, "custom": -1, "nextReset": 0, "servers": [],
+                             "addons": []}
+        p["key"] = k["key"]
+        p["status"] = "ACTIVE"
+        p["nextBilling"] = k["expires"] - 3 * DAY
+        log(actor, "paypal", "Key bought with PayPal", k["key"], "pro")
+    else:
+        k = keys.get(p.get("_target") or "")
+        if not k:
+            k = next((x for x in keys.values() if x["owner"] == uid and x["plan"] == "free"), None)
+        if not k:
+            kid = new_key_id()
+            keys[kid] = k = {"key": kid, "plan": "free", "status": "active", "note": "PayPal", "created": now(),
+                             "expires": 0, "owner": uid, "custom": -1, "nextReset": 0, "servers": [], "addons": []}
+        k["addons"] = sorted(set(k.get("addons") or []) | {p["item"]})
+        p["key"] = k["key"]
+        p["status"] = "COMPLETED"
+        log(actor, "addons", "Add-on bought", k["key"], p["item"])
+
+
+def shop_answer(handler, path, method, body, q, actor):
+    if path == ["api", "shop"]:
+        return handler.ok(enabled=SHOP["enabled"], mode=SHOP["mode"], currency=SHOP["currency"], items=SHOP_ITEMS)
+    if path == ["api", "subscriptions"] and method == "GET":
+        out = [purchase_view(p) for p in purchases.values() if not q.get("owner") or p["owner"] == q["owner"]]
+        return handler.ok(subscriptions=sorted(out, key=lambda p: -p["created"]))
+    if len(path) == 4 and path[:2] == ["api", "subscriptions"] and method == "POST":
+        p = purchases.get(path[2])
+        if not p:
+            return handler.fail("Unknown subscription")
+        if path[3] == "sync":
+            confirm_purchase(p, actor or "website: sync")
+            return handler.ok(subscription=purchase_view(p))
+        if path[3] == "cancel":
+            if p["item"] != "pro":
+                return handler.fail("Add-ons are paid once: there is nothing to cancel.")
+            p["status"] = "CANCELLED"
+            p["nextBilling"] = 0
+            return handler.ok(subscription=purchase_view(p))
+    if len(path) >= 4 and path[:2] == ["api", "users"]:
+        uid = path[2]
+        if path[3] == "subscriptions" and len(path) == 4:
+            out = [purchase_view(p) for p in purchases.values() if p["owner"] == uid]
+            return handler.ok(subscriptions=sorted(out, key=lambda p: -p["created"]))
+        if path[3] == "subscribe" and method == "POST":
+            if not SHOP["enabled"]:
+                return handler.fail("The shop is not available right now.")
+            item = next((i for i in SHOP_ITEMS if i["item"] == body.get("item")), None)
+            if not item or not item["available"]:
+                return handler.fail("Unknown item")
+            target = body.get("key") or None
+            if target:
+                k = keys.get(target)
+                if not k or k["owner"] != uid:
+                    return handler.fail("This key is not yours.")
+                if k["status"] == "revoked":
+                    return handler.fail("This key is revoked.")
+                if item["item"] == "pro" and k["plan"] == "pro":
+                    return handler.fail("This key is already Pro.")
+                if item["addon"] and item["item"] in (k.get("addons") or []):
+                    return handler.fail(f"This key already has the {item['name'].replace(' add-on', '')} add-on.")
+            pid = ("I-" if item["item"] == "pro" else "ORD") + f"MOCK{len(purchases) + 1:05d}"
+            purchases[pid] = {"id": pid, "item": item["item"], "name": item["name"], "billing": item["billing"],
+                              "owner": uid, "key": target if item["addon"] else None,
+                              "status": "APPROVAL_PENDING" if item["item"] == "pro" else "CREATED",
+                              "nextBilling": 0, "created": now(), "price": item["price"], "_target": target}
+            url = ("https://www.sandbox.paypal.com/webapps/billing/subscriptions?ba_token=" if item["item"] == "pro"
+                   else "https://www.sandbox.paypal.com/checkoutnow?token=") + pid
+            return handler.ok(id=pid, approveUrl=url)
+        if path[3] == "subscriptions" and len(path) == 6 and method == "POST":
+            p = purchases.get(path[4])
+            if not p:
+                return handler.fail("Unknown subscription")
+            if p["owner"] != uid:
+                return handler.fail("This subscription is not yours.")
+            if path[5] == "confirm":
+                confirm_purchase(p, f"website: {body.get('name')}")
+                out = {"subscription": purchase_view(p)}
+                if p.get("key") and p["key"] in keys and p["status"] in ("ACTIVE", "COMPLETED"):
+                    out["key"] = view(keys[p["key"]], admin=False, detail=True)
+                return handler.ok(**out)
+            if path[5] == "cancel":
+                if p["item"] != "pro":
+                    return handler.fail("Add-ons are paid once: there is nothing to cancel.")
+                p["status"] = "CANCELLED"
+                p["nextBilling"] = 0
+                return handler.ok(subscription=purchase_view(p), key=view(keys[p["key"]], admin=False) if p.get("key") else None)
+    return None
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -174,9 +305,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def ok(self, **kw):
         self.send(200, {"ok": True, **kw})
+        return True
 
     def fail(self, msg, code=400):
         self.send(code, {"ok": False, "error": msg})
+        return True
 
     def handle_any(self, method):
         if self.headers.get("Authorization") != f"Bearer {TOKEN}":
@@ -190,6 +323,8 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(raw or b"{}")
         actor = body.get("actor") or q.get("actor")
 
+        if shop_answer(self, path, method, body, q, actor) is not None:
+            return
         if len(path) >= 3 and path[:2] == ["api", "panel"] and method == "GET":
             return panel_answer(self, path[2:], q)
         if len(path) >= 5 and path[:2] == ["api", "users"] and path[3] == "panel" and method == "GET":

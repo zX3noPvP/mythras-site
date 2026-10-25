@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _("Shop") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app shop-done">
+  {% if state == 'paid' and key %}
+  <header class="app-head"><div>
+    <p class="kicker"><span class="kicker-dot"></span>{{ _("Payment received") }}</p>
+    <h1>{{ _("Thank you!") }}</h1>
+    <p class="muted">{{ purchase.item|plan_name }} · <span class="badge badge-{{ key.plan }}">{{ key.plan|plan_name }}</span>{{ key.addons|addon_badges }}</p>
+  </div></header>
+
+  {% if purchase.item in ADDONS %}
+  <div class="flash flash-success" role="status">{{ icon('check') }}<span>{{ _("%(addon)s is now active on %(key)s. It turns on by itself within a few minutes, no restart needed.", addon=ADDONS[purchase.item].name, key=key.key) }}</span></div>
+  {% endif %}
+
+  <section class="panel created-key">
+    <div class="panel-head"><h2>{{ icon('key') }}{{ _("Your license key") }}</h2></div>
+    <div class="key-row big-key">
+      <code class="key mono" data-key="{{ key.key }}">{{ key.key }}</code>
+      <button class="btn btn-primary" type="button" data-copy>{{ icon('copy') }}{{ _("Copy") }}</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>{{ icon('terminal') }}{{ _("Install") }}</h2>{% if purchase.item in ADDONS %}<p class="muted small">{{ _("Only if this key is not on your server yet.") }}</p>{% endif %}</div>
+    <ol class="steps steps-compact">
+      <li><span class="step-n">1</span><div><h3>{{ _("Download") }}</h3><p>{{ _("Download <code>Mythras-&lt;version&gt;.jar</code> (the same file for every plan).")|safe }}{% if download_exists %} <a href="{{ url_for('dashboard', _anchor='download') }}">{{ _("Download the plugin") }}</a>{% endif %}</p></div></li>
+      <li><span class="step-n">2</span><div><h3>{{ _("Add it to plugins") }}</h3><p>{{ _('Put it in <code>plugins/</code> together with <a href="https://modrinth.com/plugin/packetevents" target="_blank" rel="noopener">PacketEvents</a> 2.14.0 or newer.')|safe }}</p></div></li>
+      <li><span class="step-n">3</span><div><h3>{{ _("Add your key") }}</h3><p>{{ _("Type in the <b>server console</b>:")|safe }}</p><pre class="mono">mlicense {{ key.key }}</pre></div></li>
+      <li><span class="step-n">4</span><div><h3>{{ _("Restart") }}</h3><p>{{ _("Restart the server: the console shows <code>License valid: plan PRO.</code> (or Free with your add-ons).")|safe }}</p></div></li>
+    </ol>
+    <p class="pad"><a class="btn btn-outline" href="{{ url_for('dashboard') }}">{{ icon('key') }}{{ _("My licenses") }}</a></p>
+  </section>
+
+  {% elif state == 'waiting' %}
+  <section class="panel shop-wait" data-shop-poll data-id="{{ purchase_id }}" data-url="{{ url_for('shop_done_check') }}" data-csrf="{{ csrf_token }}">
+    <h1>{{ _("Waiting for PayPal...") }}</h1>
+    <p class="muted" data-wait-text>{{ _("We are waiting for PayPal to confirm the payment. Keep this page open: it updates by itself.") }}</p>
+    <p class="muted" data-slow-text hidden>{{ _("Your payment is being processed: it will appear in your account in a few minutes.") }} <a href="{{ url_for('dashboard') }}">{{ _("My licenses") }}</a></p>
+  </section>
+
+  {% elif state == 'error' %}
+  <section class="panel">
+    <h1>{{ _("Something went wrong") }}</h1>
+    <div class="api-error" role="alert">{{ icon('x') }}<div><p>{{ error }}</p></div></div>
+    <p class="pad"><a class="btn btn-outline" href="{{ url_for('shop') }}">{{ _("Back to the shop") }}</a> <a class="btn btn-outline" href="{{ url_for('dashboard') }}">{{ _("My licenses") }}</a></p>
+  </section>
+
+  {% else %}
+  <section class="panel">
+    <h1>{{ purchase.status|purchase_state }}</h1>
+    <p class="muted">{{ _("This purchase is not active. If you paid and see this, contact us on Discord with the id %(id)s.", id=purchase_id) }}</p>
+    <p class="pad"><a class="btn btn-outline" href="{{ url_for('shop') }}">{{ _("Back to the shop") }}</a></p>
+  </section>
+  {% endif %}
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}

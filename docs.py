@@ -1,6 +1,6 @@
 """Data of the public /docs page (customer guide) and of the plans table on the pricing page.
 
-Source: CUSTOMER-GUIDE.md of the plugin (Mythras 1.9), plans as of 2026-10: Free, Pro and the add-ons Anti-XRay and Anti-ESP. PLAN_MATRIX is shared by the pricing page and the docs,
+Source: CUSTOMER-GUIDE.md of the plugin (Mythras 1.25), plans as of 2026-10: Free, Pro and the add-ons Anti-XRay and Anti-ESP. PLAN_MATRIX is shared by the pricing page and the docs,
 so the two tables always match. When the plugin changes, update this file.
 """
 
@@ -8,15 +8,16 @@ YES, NO = True, None
 
 # (feature, free, pro): True = included, None = not included, str = text. Add-ons work with both plans.
 PLAN_MATRIX = [
-    ("License key", "only for add-ons", "required"),
-    ("Servers per key", "-", "unlimited (multi-server)"),
-    ("Movement checks", "basic: Speed, Flight/NoFall, Jesus", "complete"),
-    ("Combat checks", NO, "all, including Crystal PvP (CrystalAura, AnchorAura, AutoTotem, AutoSwitch, Surround)"),
-    ("World and protocol checks (FreeCam, Scaffold, FastPlace, FastBreak, BadPlace, BadBreak, Inventory, Protocol, Blink...)", NO, YES),
+    ("Price", "free", "19,99 €/month (PayPal subscription)"),
+    ("License key", "not needed (only to carry add-ons)", "required"),
+    ("Servers per key", "1 (key with add-ons)", "1"),
+    ("Movement checks", "basic: Speed, Flight/NoFall, Jesus", "complete, with Prediction"),
+    ("Combat checks", NO, "all: Reach, hitbox, KillAura, AutoClicker, Timer, Aim, NoSwing, Mace, WindCharge, Backtrack, AimBow, AutoPot, Crystal PvP (CrystalAura, AnchorAura, AutoTotem, AutoSwitch, Surround)"),
+    ("World and protocol checks (FreeCam, Scaffold, FastPlace, FastBreak, BadPlace, BadBreak, Inventory, Protocol, Blink, X-Ray...)", NO, YES),
     ("Crash and BadPackets protection", YES, YES),
-    ("Setbacks and automatic punishments, staff GUI, Discord webhook", NO, YES),
+    ("Setbacks and automatic punishments, staff GUI, Discord webhook, customer panel", NO, YES),
     ("Replays (kept 7 days)", NO, YES),
-    ("AI learning", NO, "advanced + Mythras Cloud AI (global model)"),
+    ("AI learning + Mythras Cloud AI (global model)", NO, YES),
     ("Whitelist and exemptions", NO, YES),
     ("Combat mitigations, health filter", NO, YES),
     ("Cross-server alerts (BungeeCord/Velocity), developer API, PlaceholderAPI, Folia", NO, YES),
@@ -92,12 +93,13 @@ COMMANDS = [
     # (command, what it does, permission, plan)
     ("/ac alerts", "Turn your alerts on/off", "mythras.alerts", "all"),
     ("/ac info <player>", "Client, version, mods, VL per check, AI score", "mythras.admin", "all"),
-    ("/ac history <player> [n]", "Last violations", "mythras.admin", "all"),
+    ("/ac history <player> [n] [check]", "Last violations (of one check only, if given)", "mythras.admin", "all"),
     ("/ac clear <player>", "Reset a player's violations", "mythras.admin", "all"),
     ("/ac tp <player>", "Teleport to a player (also by clicking an alert)", "mythras.teleport", "all"),
     ("/ac debug <player>", "Detailed console log for one player", "mythras.admin", "all"),
     ("/ac perf [checks|reset]", "Plugin performance", "mythras.admin", "all"),
     ("/ac reload", "Reload config and messages", "mythras.admin", "all"),
+    ("/ac license", "Your plan and add-ons, e.g. Mythras Pro + Anti-XRay", "mythras.admin", "all"),
     ("/ac lang [code]", "Show or change the language of all messages: en English, it Italiano, es Español, pt Português, de Deutsch, fr Français, pl Polski, zh 中文 (or any messages_<code>.yml you add); saved in config.yml", "mythras.admin", "all"),
     ("/ac gui", "Players menu", "mythras.admin", "Pro"),
     ("/ac settings", "Menu to turn every check on/off, on Bedrock players or not, and with or without punishments (each change asks for confirmation and is saved in config.yml)", "mythras.admin", "Pro"),

@@ -8,7 +8,7 @@
   <a href="{{ url_for('admin_invites') }}" {% if active == 'invites' %}aria-current="page"{% endif %}>{{ _("Setup links") }}</a>
   <a href="{{ url_for('admin_questions') }}" {% if active == 'questions' %}aria-current="page"{% endif %}>{{ _("Questions") }}</a>
   <a href="{{ url_for('admin_customers') }}" {% if active == 'customers' %}aria-current="page"{% endif %}>{{ _("Customers") }}</a>
-  <a href="{{ url_for('admin_payments') }}" {% if active == 'payments' %}aria-current="page"{% endif %}>{{ _("Payments") }}</a>
+  <a href="{{ url_for('admin_purchases') }}" {% if active == 'purchases' %}aria-current="page"{% endif %}>{{ _("Purchases") }}</a>
   <a href="{{ url_for('admin_panel') }}" {% if active == 'panel' %}aria-current="page"{% endif %}>{{ _("Panel") }}</a>
   <a href="{{ url_for('admin_ai') }}" {% if active == 'ai' %}aria-current="page"{% endif %}>Cloud AI</a>
   <a href="{{ url_for('admin_log') }}" {% if active == 'log' %}aria-current="page"{% endif %}>{{ _("Log") }}</a>

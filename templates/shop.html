@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% macro cell(v) -%}
+  {%- if v is sameas true -%}<span class="yes-text">{{ icon('check') }}</span><span class="sr-only">{{ _("Included") }}</span>
+  {%- elif v is none -%}<span class="muted">-</span>
+  {%- else -%}{{ _(v) }}{%- endif -%}
+{%- endmacro %}
+{% macro consent(item) -%}
+<label class="check consent small"><input type="checkbox" name="consent" value="1" required> <span>{% if item == 'pro' %}{{ _("I accept the Terms of Sale and the monthly renewal until I cancel, and I ask for immediate delivery: I lose the right of withdrawal once the key is active.") }}{% else %}{{ _("I accept the Terms of Sale and ask for immediate delivery: I lose the right of withdrawal once the add-on is active.") }}{% endif %} <a href="{{ url_for('terms') }}" target="_blank">{{ _("Terms of Sale") }}</a></span></label>
+{%- endmacro %}
+{% macro soon() -%}<button class="btn btn-outline full" type="button" disabled>{{ _("Coming soon") }}</button>{%- endmacro %}
+{% block title %}{{ _("Shop") }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+{% set items = SHOP['items'] %}
+<div class="container app shop">
+  <header class="section-head center">
+    <p class="kicker"><span class="kicker-dot"></span>{{ _("Shop") }}</p>
+    <h1>{{ _("Pro and add-ons") }}</h1>
+    <p class="muted">{{ _("Pro is a monthly PayPal subscription you can cancel any time. Add-ons are one payment and stay on your key for ever, on Free or Pro.") }}</p>
+  </header>
+
+  {% if is_admin and SHOP.mode == 'sandbox' %}
+  <div class="flash flash-error" role="status">{{ icon('settings') }}<span><b>{{ _("Test mode") }}</b>: {{ _("PayPal sandbox. Only admins see this message.") }}</span></div>
+  {% endif %}
+  {% if not current_user %}
+  <div class="shop-login panel">
+    <p>{{ _("Log in with Discord to buy: your key is linked to your Discord account.") }}</p>
+    <a class="btn btn-primary" href="{{ url_for('login', next='/shop') }}">{{ icon('discord') }}{{ _("Log in with Discord") }}</a>
+  </div>
+  {% endif %}
+
+  <div class="pricing">
+    <article class="plan" id="free">
+      <h3>Free</h3>
+      <p class="plan-desc">{{ _(TIERS.free.description) }}</p>
+      <p class="plan-price">€0<span>{{ _(TIERS.free.period) }}</span></p>
+      {% if FREE_LINKS %}<a class="btn btn-outline full" href="{{ FREE_LINKS[0].url }}" target="_blank" rel="noopener">{{ _("Download") }}</a>
+      {% else %}<a class="btn btn-outline full" href="{{ url_for('docs_page', _anchor='installation') }}">{{ _("Download") }}</a>{% endif %}
+      <ul class="plan-list">{% for f in TIERS.free.features %}<li>{{ icon('check') }}<span>{{ _(f) }}</span></li>{% endfor %}</ul>
+    </article>
+
+    {% set pro = items.get('pro') %}
+    <article class="plan plan-featured" id="pro">
+      <span class="plan-flag">{{ _("Most popular") }}</span>
+      <h3>Pro</h3>
+      <p class="plan-desc">{{ _(TIERS.pro.description) }}</p>
+      <p class="plan-price">{{ price_of('pro', TIERS.pro.price) }}<span>{{ _("per month") }}</span></p>
+      {% if not (SHOP.enabled and pro and pro.available) %}{{ soon() }}
+      {% elif not current_user %}<a class="btn btn-primary full" href="{{ url_for('login', next='/shop') }}">{{ _("Subscribe with PayPal") }}</a>
+      {% else %}
+      <form method="post" action="{{ url_for('shop_buy') }}" class="buy-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="item" value="pro">
+        {% if free_keys %}
+        <label class="small">{{ _("For which key?") }}
+          <select name="key">
+            <option value="">{{ _("New key") }}</option>
+            {% for k in free_keys %}<option value="{{ k.key }}" {% if pick_item == 'pro' and pick_key == k.key %}selected{% endif %}>{{ _("Upgrade %(key)s (keeps its add-ons)", key=k.key) }}</option>{% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        {{ consent('pro') }}
+        <button class="btn btn-primary full" type="submit">{{ _("Subscribe with PayPal") }}</button>
+      </form>
+      {% endif %}
+      <ul class="plan-list">{% for f in TIERS.pro.features %}<li>{{ icon('check') }}<span>{{ _(f) }}</span></li>{% endfor %}</ul>
+    </article>
+
+    {% for a, addon in ADDONS.items() %}
+    {% set it = items.get(a) %}
+    {% set free_slots = addon_slots[a] %}
+    <article class="plan plan-addon" id="{{ a }}">
+      <span class="plan-flag plan-flag-addon">{{ _("Add-on") }}</span>
+      <h3>{{ addon.name }}</h3>
+      <p class="plan-desc">{{ _(addon.description) }}</p>
+      <p class="plan-price">{{ price_of(a, addon.price) }}<span>{{ _("One payment, yours for ever") }}</span></p>
+      {% if not (SHOP.enabled and it and it.available) %}{{ soon() }}
+      {% elif not current_user %}<a class="btn btn-outline full" href="{{ url_for('login', next='/shop') }}">{{ _("Pay with PayPal") }}</a>
+      {% elif keys and not free_slots %}<p class="owned"><span class="status-dot">{{ _("Owned") }}</span></p>
+      {% else %}
+      <form method="post" action="{{ url_for('shop_buy') }}" class="buy-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="item" value="{{ a }}">
+        {% if keys %}
+        <label class="small">{{ _("For which key?") }}
+          <select name="key">
+            <option value="">{{ _("New Free key") }}</option>
+            {% for k in keys %}<option value="{{ k.key }}" {% if a in (k.addons or []) %}disabled{% elif pick_item == a and pick_key == k.key %}selected{% endif %}>{{ k.key }} · {{ k.plan|plan_name }}{% if a in (k.addons or []) %} · {{ _("Owned") }}{% endif %}</option>{% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        {{ consent(a) }}
+        <button class="btn btn-outline full" type="submit">{{ _("Pay with PayPal") }}</button>
+      </form>
+      {% endif %}
+      <ul class="plan-list">
+        <li>{{ icon('plus') }}<span>{{ _("One payment, yours for ever") }}</span></li>
+        <li>{{ icon('plus') }}<span>{{ _("Works on Free and Pro") }}</span></li>
+        {% for f in addon.features if f not in ("Pay once, yours forever", "Works with Free and Pro") %}<li>{{ icon('plus') }}<span>{{ _(f) }}</span></li>{% endfor %}
+      </ul>
+    </article>
+    {% endfor %}
+  </div>
+
+  <div class="compare-wrap">
+    <table class="compare">
+      <caption class="sr-only">{{ _("Feature comparison by tier") }}</caption>
+      <thead><tr><th scope="col">{{ _("Feature") }}</th><th scope="col">Free (beta)</th><th scope="col" class="col-pro">Pro</th></tr></thead>
+      <tbody>
+        {% for label, free, pro in DOCS.PLAN_MATRIX %}
+        <tr><th scope="row">{{ _(label) }}</th><td>{{ cell(free) }}</td><td class="col-pro">{{ cell(pro) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small center">{{ _("Prefer to pay another way?") }} {% if SUPPORT_DISCORD %}<a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Open a ticket on our Discord server") }}</a>{% else %}{{ _("Contact support.") }}{% endif %}</p>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "admin/_parts.html" import admin_nav, api_error_box with context %}
+{% block title %}{{ _("Purchases") }} · Admin · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">Admin{% if SHOP.mode %} · PayPal {{ SHOP.mode }}{% endif %}</p>
+      <h1>{{ _("Purchases") }}</h1>
+      <p class="muted small">{{ _("Pro subscriptions and add-on payments, read by the license server from PayPal. Keys are created and renewed automatically.") }}</p>
+    </div>
+  </header>
+  {{ admin_nav('purchases') }}
+  {{ api_error_box(api_error) }}
+
+  <section class="panel">
+    <form method="get" class="filters" role="search">
+      <label>{{ _("Customer") }}
+        <input name="owner" value="{{ owner }}" inputmode="numeric" pattern="[0-9]{17,20}" placeholder="{{ _('Discord ID') }}">
+      </label>
+      <button class="btn btn-outline" type="submit">{{ _("Filter") }}</button>
+      {% if owner %}<a class="btn btn-ghost" href="{{ url_for('admin_purchases') }}">{{ _("All") }}</a>{% endif %}
+    </form>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">{{ _("Date") }}</th><th scope="col">{{ _("Customer") }}</th><th scope="col">{{ _("Product") }}</th><th scope="col">{{ _("Key") }}</th><th scope="col">{{ _("Price") }}</th><th scope="col">{{ _("Status") }}</th><th scope="col">{{ _("Next payment") }}</th><th scope="col"><span class="sr-only">{{ _("Actions") }}</span></th></tr></thead>
+        <tbody>
+          {% for p in rows %}
+          <tr>
+            <td class="small nowrap">{{ p.created|ms_date }}</td>
+            <td class="small"><a href="{{ url_for('admin_purchases', owner=p.owner) }}">{{ names.get(p.owner) or p.owner }}</a></td>
+            <td class="small">{{ p.item|plan_name }}<br><span class="muted">{{ _("Monthly") if p.billing == 'monthly' else _("One-time") }}</span><br><span class="mono muted">{{ p.id }}</span></td>
+            <td class="mono small">{% if p.key %}<a href="{{ url_for('admin_key', key=p.key) }}">{{ p.key }}</a>{% else %}—{% endif %}</td>
+            <td class="mono small">€{{ p.price }}</td>
+            <td class="small"><span class="status-dot {% if p.status in ('SUSPENDED', 'REFUNDED') %}is-bad{% elif p.status not in ('ACTIVE', 'COMPLETED') %}is-off{% endif %}">{{ p.status|purchase_state }}</span></td>
+            <td class="small nowrap">{% if p.item == 'pro' and p.nextBilling %}{{ p.nextBilling|ms_date }}{% else %}—{% endif %}</td>
+            <td class="row-actions">
+              <form method="post" action="{{ url_for('admin_purchase_action', purchase_id=p.id, action='sync') }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="owner" value="{{ owner }}">
+                <button class="btn btn-outline btn-sm" type="submit">{{ _("Sync from PayPal") }}</button>
+              </form>
+              {% if p.item == 'pro' and p.status == 'ACTIVE' %}
+              <form method="post" action="{{ url_for('admin_purchase_action', purchase_id=p.id, action='cancel') }}" class="inline" data-confirm="{{ _('Cancel this Pro subscription at PayPal? The key keeps working until its expiry.') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="owner" value="{{ owner }}">
+                <button class="btn btn-ghost btn-sm" type="submit">{{ _("Cancel") }}</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="muted">{{ _("No purchases yet.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

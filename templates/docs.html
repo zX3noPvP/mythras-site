@@ -28,9 +28,10 @@
       <li><a href="#commands">{{ _("5. Commands") }}</a></li>
       <li><a href="#permissions">{{ _("6. Permissions") }}</a></li>
       <li><a href="#configuration">{{ _("7. Configuration") }}</a></li>
-      <li><a href="#api">{{ _("8. Developer API and placeholders") }}</a></li>
-      <li><a href="#news">{{ _("9. What's new") }}</a></li>
-      <li><a href="#faq">{{ _("10. FAQ") }}</a></li>
+      <li><a href="#proxy">{{ _("8. MythrasProxy (Velocity / BungeeCord)") }}</a></li>
+      <li><a href="#api">{{ _("9. Developer API and placeholders") }}</a></li>
+      <li><a href="#news">{{ _("10. What's new") }}</a></li>
+      <li><a href="#faq">{{ _("11. FAQ") }}</a></li>
     </ol>
   </aside>
 
@@ -77,9 +78,9 @@
         <li><span class="step-n">1</span><div><h3>{{ _("Download") }}</h3><p>{{ _("Download <code>Mythras-&lt;version&gt;.jar</code> (the same file for every plan).")|safe }}</p></div></li>
         <li><span class="step-n">2</span><div><h3>{{ _("Add it to plugins") }}</h3><p>{{ _("Put it in <code>plugins/</code> together with PacketEvents.")|safe }}</p></div></li>
         <li><span class="step-n">3</span><div><h3>{{ _("Start the server") }}</h3><p>{{ _("Without a key Mythras starts the <b>Free</b> plan (beta test).")|safe }}</p></div></li>
-        <li><span class="step-n">4</span><div><h3>{{ _("Add your key") }}</h3><p>{{ _("To use your plan, type in the <b>server console</b>:")|safe }}</p>{{ code("mlicense MYTH-XXXX-XXXX-XXXX-XXXX") }}<p>{{ _("then <b>restart</b> the server. The console shows <code>License valid: plan PRO.</code> (or your plan).")|safe }}</p></div></li>
+        <li><span class="step-n">4</span><div><h3>{{ _("Add your key") }}</h3><p>{{ _("To use Pro, type in the <b>server console</b>:")|safe }}</p>{{ code("mlicense MYTH-XXXX-XXXX-XXXX-XXXX") }}<p>{{ _("then <b>restart</b> the server. The console shows <code>License valid: plan PRO.</code>.")|safe }}</p></div></li>
       </ol>
-      <p>{{ _("The key is saved in <code>plugins/Mythras/license.yml</code>. Do not copy this file to other servers: each server has its own <code>server-id</code>, and the number of servers per key depends on your plan.")|safe }}</p>
+      <p>{{ _("The key is saved in <code>plugins/Mythras/license.yml</code>. Do not copy this file to other servers: each server has its own <code>server-id</code>, and a Pro key works on 1 server.")|safe }}</p>
       {% if current_user %}<p><a class="btn btn-outline btn-sm" href="{{ url_for('dashboard') }}">{{ icon('key') }}{{ _("My licenses") }}</a></p>{% endif %}
     </section>
 
@@ -95,13 +96,30 @@
           </tbody>
         </table>
       </div>
-      <p>{{ _("<b>AI learning (Pro).</b> The AI looks at 20 combat behaviours every 20 hits (clicks, rotations, aim, reach, target switching) and learns what is normal on your server, from punished and clean players. Every setting can be tuned, staff can train it (<code>/ac ai label</code>), and it punishes only if you allow it.")|safe }}</p>
+      <h3 class="wiki-cat">{{ _("Add-ons (5,99 € each, one payment, yours for ever, on a Free or a Pro key)") }}</h3>
+      <div class="table-wrap">
+        <table class="table wiki-table">
+          <thead><tr><th scope="col">{{ _("Add-on") }}</th><th scope="col">{{ _("What it does") }}</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Anti-XRay</th><td>{{ _("ores out of sight reach the client as rock, also those open to caves, until the player can see them") }}</td></tr>
+            <tr><th scope="row">Anti-ESP</th><td>{{ _("players behind walls are not sent to the client (ESP, Tracers, Chams, Radar show nothing), and <b>Anti-StorageESP</b>: chests and containers out of sight are sent as the block next to them")|safe }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>{{ _("No plan includes the add-ons: a Free server can have only Anti-XRay, a Pro server Pro + both, and so on. The X-Ray <i>check</i> (it spots X-Ray users from how they mine) is part of Pro; the add-on is what hides the ores.")|safe }}</p>
+      <p>{{ _("<b>Buying.</b> On mythras.eu log in with Discord, open the shop and pay with PayPal.")|safe }}</p>
+      <ul class="wiki-list">
+        <li>{{ _("<b>Pro</b>: the key appears in your customer area as soon as PayPal confirms the first payment. If you already have a Free key (for an add-on), you can turn that key into Pro and keep its add-ons.")|safe }}</li>
+        <li>{{ _("<b>Add-on</b>: choose one of your keys, Free or Pro; without a key you get a <b>Free key</b> with the add-on (install it with <code>mlicense &lt;KEY&gt;</code> like any key). It turns on by itself within a few minutes, no restart needed (the console shows <code>Add-on Anti-XRay active.</code>). <code>/ac license</code> shows your plan and add-ons, e.g. <code>Mythras Pro + Anti-XRay</code>.")|safe }}</li>
+      </ul>
+      <p>{{ _("<b>Renewal and cancelling.</b> Pro renews every month by itself and moves the expiry of your key (3 days of margin after each billing date). You can cancel at any time from the customer area or from PayPal: the key keeps working until the end of the month you paid. Add-ons are paid once and never expire; if your Pro ends, the key becomes a Free key and its add-ons keep working.")|safe }}</p>
+      <p>{{ _("<b>AI learning (Pro).</b> The AI looks at 20 combat behaviours every 20 hits (clicks, rotations, aim, reach, target switching) and learns what is normal on your server, from punished and clean players. Every setting can be tuned, staff can train it (<code>/ac ai label</code>), and it can punish.")|safe }}</p>
       <p>{{ _("<b>Mythras Cloud AI (Pro).</b> Every Pro server also gets a global model, trained every hour on the combat data of all Pro servers. It protects a new server from the first day, before your own AI has learned enough; then the two are combined. The global model is a small neural network when that is more accurate than a simple model, so it also recognises combinations (for example fast turning together with perfectly steady aim). What is shared: 20 numbers per 20 hits (click speed and rhythm, how the view turns, reach, hit ratio, aim steadiness...) and whether the player was punished, never names, UUIDs or IP addresses. <code>ai.cloud.share: false</code> only downloads the model, <code>ai.cloud.enabled: false</code> turns it off. <code>/ac ai status</code> shows the global model.")|safe }}</p>
       <p>{{ _("<b>Why the AI flagged someone.</b> Every AI alert says why, for example <code>combat model 95% cheating: very regular clicks, aim locked on the body</code>: the behaviours that are most unusual compared to the normal players of your server. You see it in the alert, in <code>/ac info &lt;player&gt;</code> and in the replay.")|safe }}</p>
       <p>{{ _("<b>Reviewing suspects (Pro).</b> <code>/ac ai review</code> opens the list of players the AI found suspicious in the last hour, also if they already left. Left click opens their replays; right click = cheating, shift + click = legit. Your verdict teaches the AI (on your server and, with Cloud AI, everywhere), so it gets better the more you use it.")|safe }}</p>
       <p>{{ _("Bedrock players (Geyser) are never judged by the AI: touch controls and aim assist would look like cheating.") }}</p>
       <p>{{ _("The Free plan only sends alerts to staff: no setbacks, no punishments.") }}</p>
-      <p><a class="btn btn-outline btn-sm" href="{{ url_for('index') }}#pricing">{{ _("Pricing") }}</a></p>
+      <p><a class="btn btn-outline btn-sm" href="{{ url_for('shop') }}">{{ _("Shop") }}</a></p>
     </section>
 
     <section id="checks" class="wiki-section doc-section">
@@ -136,8 +154,9 @@
         <li>{{ _("<code>/license reset key:&lt;KEY&gt;</code>: frees the servers of your key (for example after moving to a new machine). Once every 24 hours.")|safe }}</li>
       </ul>
       <p>{{ _("The same actions are available in the customer area of this website.") }} <a href="{{ url_for('dashboard') }}">{{ _("My licenses") }}</a></p>
+      <p>{{ _("<b>Panel.</b> In the customer area you see your servers (online, players, TPS, versions), the alerts, punishments and saved replays of the last 30 days, the most flagged players and checks, and a page for each player. It updates every 10 seconds. Name your servers with <code>panel.server-name</code> in config.yml.")|safe }}</p>
       <p>{{ _("<b>Moving to another machine:</b> reset the servers of your key, then use <code>mlicense &lt;KEY&gt;</code> on the new server.")|safe }}</p>
-      <p>{{ _("<b>Updates:</b> paid plans update themselves. At every restart the server downloads the latest version of your plan. Download a new <code>Mythras-&lt;version&gt;.jar</code> only when we announce it.")|safe }}</p>
+      <p>{{ _("<b>Updates:</b> Pro updates itself. At every restart the server downloads the latest version. When a new <code>Mythras-&lt;version&gt;.jar</code> is published, the console and the admins joining the server are told; download it from the customer area (it updates the loader and the Free plan).")|safe }}</p>
       <p>{{ _("<b>If our license server is unreachable</b>, your server keeps starting with your plan for <b>72 hours</b>.")|safe }}</p>
     </section>
 
@@ -174,7 +193,7 @@
       <h2>{{ _("7. Configuration") }}</h2>
       <p>{{ _("Files in <code>plugins/Mythras/</code>:")|safe }}</p>
       <ul class="wiki-list">
-        <li>{{ _("<code>config.yml</code>: contains only the options of your plan. After an upgrade the new options are added at the end.")|safe }}</li>
+        <li>{{ _("<code>config.yml</code>: contains only the options of your plan (Free or Pro). After an upgrade the new options are added at the end.")|safe }}</li>
         <li>{{ _("<code>messages_&lt;code&gt;.yml</code>: all texts, hex colours and gradients supported, in 8 languages (en, it, es, pt, de, fr, pl, zh). Choose with <code>/ac lang &lt;code&gt;</code> or <code>language: en</code>.")|safe }}</li>
       </ul>
       <h3 class="wiki-cat">{{ _("Main options") }}</h3>
@@ -195,19 +214,20 @@
         </li>
         <li>{{ _("<code>punishments.commands</code> (Pro): <code>[kick] &lt;message&gt;</code>, <code>[message] &lt;text&gt;</code> or any console command, for example <code>ban %player% 7d Cheating</code>. Placeholders: <code>%player%</code>, <code>%check%</code>, <code>%vl%</code>, <code>%kick-message%</code>.")|safe }}</li>
         <li>{{ _("<code>setback</code> (Pro): pulls the cheater back to the last valid position.")|safe }}</li>
-        <li>{{ _("<code>discord</code> (Pro): webhook for alerts and punishments.")|safe }}</li>
-        <li>{{ _("<code>mitigations</code> (Pro): cancels impossible hits, halves damage after combat flags, health filter; with the add-ons also:")|safe }}
+        <li>{{ _("<code>discord</code> (Pro): webhook for alerts and punishments. <code>ai-suspects</code> (Pro): new AI suspects (85%+) with the reason.")|safe }}</li>
+        <li>{{ _("<code>mitigations</code>: (Pro) cancels impossible hits, halves damage after combat flags, health filter; with the add-ons, on any plan:")|safe }}
           <ul>
-            <li>{{ _("<code>anti-esp</code> and <code>anti-storage-esp</code> (Anti-ESP add-on): players and containers the player cannot see are not sent, so ESP, tracers and StorageESP show nothing behind walls (<code>blocks</code> = which containers);")|safe }}</li>
-            <li>{{ _("<code>anti-xray</code> (Anti-XRay add-on): ores out of sight are sent as rock, also those open to caves, until the player can see them (<code>blocks</code>, <code>max-y</code>, <code>max-distance</code>). It replaces Paper's anti-xray, which you can leave off.")|safe }}</li>
+            <li>{{ _("<code>anti-esp</code> and <code>anti-storage-esp</code> (Anti-ESP add-on, any plan): containers the player cannot see are sent as the block next to them, so StorageESP/ChestESP show nothing behind walls (<code>blocks</code> = which containers);")|safe }}</li>
+            <li>{{ _("<code>anti-xray</code> (Anti-XRay add-on, any plan): ores out of sight are sent as rock, also those open to caves, until the player can see them (<code>blocks</code>, <code>max-y</code>, <code>max-distance</code>). It replaces Paper's anti-xray, which you can leave off.")|safe }}</li>
             <li>{{ _("Anti-ESP works on its own thread, so it costs almost nothing on the main thread. Walls changed by commands or WorldEdit (no block event) are noticed within 3 seconds; walls broken, placed or blown up by players at once.") }}</li>
           </ul>
         </li>
-        <li>{{ _("<code>replay</code> (Pro): <code>mode: flag</code> records flagged players, <code>mode: always</code> keeps the last 25 seconds of everyone. <code>keep-days</code>: how long replays are kept (at most 7 days: older ones are deleted).")|safe }}</li>
+        <li>{{ _("<code>replay</code> (Pro): <code>mode: flag</code> records flagged players, <code>mode: always</code> keeps the last 25 seconds of everyone. Replays are kept 7 days, then deleted.")|safe }}</li>
         <li>{{ _("<code>ai</code> (Pro): self-learning model; tune it and train it with staff labels (<code>/ac ai label</code>).")|safe }} {{ _("<code>ai.cloud</code> (Pro): Mythras Cloud AI, <code>enabled</code> and <code>share</code> (see Plans).")|safe }}</li>
         <li>{{ _("<code>checks.freecam</code> (Pro): clicks on blocks hidden behind walls (FreeCam, GhostHand) are refused with <code>cancel: true</code> (a chest behind a wall stays closed) and flagged.")|safe }}</li>
         <li>{{ _("<code>checks.xray</code> (Pro): <code>min-veins</code>, <code>max-stone-per-vein</code>, <code>window-minutes</code>, <code>ores</code>. Alerts only by default: check the player's replay before punishing. Paper's anti-xray (<code>engine-mode: 2</code> in <code>paper-world-defaults.yml</code>) works well together with it.")|safe }}</li>
-        <li>{{ _("<code>network</code> (Pro): alerts of all servers behind BungeeCord/Velocity.")|safe }}</li>
+        <li>{{ _("<code>network</code> (Pro): alerts of all servers behind BungeeCord/Velocity. With <b>MythrasProxy</b> (below) set <code>network.proxy-plugin: true</code>.")|safe }}</li>
+        <li>{{ _("<code>panel</code> (Pro): the customer panel on this website. <code>server-name</code>: the name shown in the panel; <code>enabled: false</code> stops sending (only the names and UUIDs of flagged players are sent, with the alerts).")|safe }}</li>
       </ul>
       <div class="wiki-callout">
         <h3>{{ icon('check') }}{{ _("Tip") }}</h3>
@@ -215,8 +235,20 @@
       </div>
     </section>
 
+    <section id="proxy" class="wiki-section doc-section">
+      <h2>{{ _("8. MythrasProxy (Velocity / BungeeCord)") }} <span class="badge badge-pro">Pro</span></h2>
+      <p>{{ _("A free companion plugin for the proxy: download <code>MythrasProxy-&lt;version&gt;.jar</code> and put it in the <code>plugins/</code> folder of Velocity or BungeeCord/Waterfall (the same jar works on both). On every Mythras server set:")|safe }}</p>
+      {{ code('network:\n  enabled: true\n  server-name: "lobby"      # the name of this server in the proxy\n  proxy-plugin: true') }}
+      <ul class="wiki-list">
+        <li>{{ _("<b>Network alerts</b>: staff see the alerts of every server, on any server they are, with the server name; clicking one takes them there (<code>/server</code>). Permission on the proxy: <code>mythras.alerts</code> (e.g. with LuckPerms on the proxy).")|safe }}</li>
+        <li>{{ _("<b>Network bans</b>: a punishment <code>&quot;[netban] 30d Cheating (%check%)&quot;</code> (or <code>perm</code>) in <code>punishments.commands</code> or in a check's <code>punish-commands</code> bans the player from the whole network, also when they reconnect to another server.")|safe }}</li>
+        <li>{{ _("<b>Proxy commands</b> (<code>/mythrasproxy</code>, <code>/mpx</code>, permission <code>mythras.proxy.admin</code>): <code>alerts</code> (toggle), <code>bans</code>, <code>ban &lt;player&gt; &lt;30d|12h|perm&gt; [reason]</code>, <code>unban &lt;player&gt;</code>, <code>reload</code>.")|safe }}</li>
+        <li>{{ _("Settings and texts in <code>plugins/mythras-proxy/config.properties</code> (Velocity) or <code>plugins/MythrasProxy/config.properties</code> (BungeeCord); bans in <code>bans.json</code>.")|safe }}</li>
+      </ul>
+    </section>
+
     <section id="api" class="wiki-section doc-section">
-      <h2>{{ _("8. Developer API and placeholders") }} <span class="badge badge-pro">Pro</span></h2>
+      <h2>{{ _("9. Developer API and placeholders") }} <span class="badge badge-pro">Pro</span></h2>
       <ul class="wiki-list">
         <li>{{ _("Events: <code>MythrasFlagEvent</code> (cancellable flag) and <code>MythrasPunishEvent</code> (cancellable punishment).")|safe }}</li>
         <li>{{ _("<code>MythrasAPI.get()</code> methods:")|safe }}
@@ -237,8 +269,20 @@
     </section>
 
     <section id="news" class="wiki-section doc-section">
-      <h2>{{ _("9. What's new") }}</h2>
+      <h2>{{ _("10. What's new") }}</h2>
       <ul class="wiki-list">
+        <li>{{ _("<b>1.25</b>: the add-ons <b>Anti-XRay</b> and <b>Anti-ESP</b> (with Anti-StorageESP) are paid once (5,99 €) and kept for ever, also on Free servers (a Free key with the add-on). <code>/ac license</code> shows plan and add-ons.")|safe }}</li>
+        <li>{{ _("<b>1.24</b>: two plans, <b>Free</b> and <b>Pro</b> (19,99 €/month, everything that was Enterprise, 1 server per key), paid with PayPal on mythras.eu. Anti-XRay and Anti-ESP became add-ons and turn on without a restart. Keys bought before (Base, Pro, Enterprise) are now Pro and keep their servers.")|safe }}</li>
+        <li>{{ _("<b>1.23</b>: the answers you give in the setup link on mythras.eu configure the plugin by themselves (at the next restart or within 6 hours); your later changes in game or in config.yml stay until you fill in the link again. A key can be locked to your server's IP address.")|safe }}</li>
+        <li>{{ _("<b>1.22</b>: new detections: Criticals &quot;Jump&quot; (Meteor), ElytraFly &quot;vanilla&quot; while using rockets, ChestStealers with random delays (Meteor steal); Blink catches holds from 0.4 s.")|safe }}</li>
+        <li>{{ _("<b>1.21.2</b>: NoSlow now also catches NoSlow modules for cobwebs, soul sand and honey blocks. No more BadBreak, BadPlace, Phase or FreeCam false flags when the server refuses a break or a placement (spawn protection, WorldGuard, claims); no more Jesus false flag when walking out of the water onto a bank at the same height.")|safe }}</li>
+        <li>{{ _("<b>1.21.1</b>: no more Blink false flags when a client (e.g. Lunar) freezes for a moment after joining.")|safe }}</li>
+        <li>{{ _("<b>1.21</b>: simpler config: <code>bstats: true|false</code> and <code>update-checker.enabled</code> only; replays are always kept 7 days; punishments run at once. Old options are removed from config.yml automatically.")|safe }}</li>
+        <li>{{ _("<b>1.20</b>: Mythras rebuilds the world as each player's client sees it: other players where their screen shows them (Reach and KillAura are stricter on moving targets, with no false flags from lag) and the real shape of slabs, stairs, fences and panes (Prediction now also judges next to walls).")|safe }}</li>
+        <li>{{ _("<b>1.19</b>: new <b>Prediction</b> check (Pro): it replays the vanilla movement of every tick with the keys the player is pressing and flags what no input explains (light speed hacks, AirStrafe, &quot;legit&quot; BHop). Alerts only at first (<code>checks.prediction.punish-vl: 0</code>): set a punishment once you have seen it on your server.")|safe }}</li>
+        <li>{{ _("<b>1.18</b>: Anti-ESP, Anti-XRay and Anti-StorageESP also on Folia (Pro).")|safe }}</li>
+        <li>{{ _("<b>1.17</b>: MythrasProxy for Velocity/BungeeCord: network alerts and network bans (<code>[netban]</code>).")|safe }}</li>
+        <li>{{ _("<b>1.16</b>: customer panel on the website: your servers, alerts, punishments and replays from the browser.")|safe }}</li>
         <li>{{ _("<b>1.15</b>: the AI looks at 20 behaviours instead of 12; every AI alert says why; <code>/ac ai review</code> (Pro) to judge the suspects of the last hour; Mythras Cloud AI uses a neural network when it is more accurate. Your AI keeps what it already learned.")|safe }}</li>
         <li>{{ _("<b>1.14.1 / 1.14.2</b>: performance: Anti-ESP on its own thread, lighter work per player (the main-thread time of Mythras is about a third of before).")|safe }}</li>
         <li>{{ _("<b>1.14</b>: Mythras Cloud AI (Pro): a global model trained on all Pro servers, active from the first day.")|safe }}</li>
@@ -246,18 +290,19 @@
     </section>
 
     <section id="faq" class="wiki-section doc-section">
-      <h2>{{ _("10. FAQ") }}</h2>
+      <h2>{{ _("11. FAQ") }}</h2>
       <dl class="wiki-faq">
         <dt>{{ _("A legit player gets flagged.") }}</dt>
         <dd>{{ _("Use <code>/ac info &lt;player&gt;</code> and <code>/ac debug &lt;player&gt;</code>, then send us the check name, the details of the alert, the client and the version. Meanwhile raise that check's <code>buffer</code> or set its <code>punish-vl: 0</code>.")|safe }}</dd>
         <dt>{{ _("A plugin launches players (launch pads, knockback, custom elytra).") }}</dt>
-        <dd>{{ _("Add the world or region to <code>exemptions</code> (Pro), or call <code>MythrasAPI.get().exempt(player, millis)</code> from your plugin (Pro).")|safe }}</dd>
+        <dd>{{ _("Add the world or region to <code>exemptions</code>, or call <code>MythrasAPI.get().exempt(player, millis)</code> from your plugin.")|safe }}</dd>
         <dt>{{ _('The console says "License key refused".') }}</dt>
         <dd>{{ _("The message says why:") }}
           <ul class="wiki-list">
             <li>{{ _("<code>the key does not exist</code>: check the key;")|safe }}</li>
             <li>{{ _("<code>revoked</code> or <code>expired</code>;")|safe }}</li>
-            <li>{{ _("<code>maximum number of servers</code>: reset the servers with <code>/license reset</code>.")|safe }}</li>
+            <li>{{ _("<code>maximum number of servers</code>: a Pro key works on 1 server; reset the servers with <code>/license reset</code>;")|safe }}</li>
+            <li>{{ _("<code>IP not allowed</code>: the key is locked to other IP addresses (change them in the customer area).")|safe }}</li>
           </ul>
         </dd>
         <dt>{{ _('"License server unreachable"') }}</dt>
@@ -265,7 +310,7 @@
         <dt>{{ _("Does Mythras lag the server?") }}</dt>
         <dd>{{ _("No: checks run on the network threads, Anti-ESP and the AI on their own threads. With 100 players fighting, Mythras uses about 0.3 ms of the 50 ms of a tick. <code>/ac perf</code> shows how much time Mythras uses per tick on your server.")|safe }}</dd>
         <dt>{{ _("The AI flagged a legit player.") }}</dt>
-        <dd>{{ _("Open <code>/ac ai review</code> and shift + click the player: their fights are taught to the AI as legit. Unless you allow it, the AI only sends alerts and never punishes. The alert says why it flagged (for example <code>very regular clicks</code>): send it to us with the player's client if it keeps happening.")|safe }}</dd>
+        <dd>{{ _("Open <code>/ac ai review</code> (Pro) and shift + click the player: their fights are taught to the AI as legit. The alert says why it flagged (for example <code>very regular clicks</code>): send it to us with the player's client if it keeps happening.")|safe }}</dd>
         <dt>{{ _("Support") }}</dt>
         <dd>{{ _("Open a ticket on our Discord server with your key (only the first part, e.g. <code>MYTH-ABCD-…</code>), server version, Mythras version and the console log.")|safe }}{% if SUPPORT_DISCORD %} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Discord server") }}</a>{% endif %}</dd>
       </dl>

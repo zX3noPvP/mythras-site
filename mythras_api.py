@@ -152,6 +152,44 @@ def user_claim(discord_id, key, name=None):
     return call(f"/api/users/{_seg(discord_id)}/claim", method="POST", body={"key": key, "name": name})["key"]
 
 
+# ---------- shop: PayPal is handled by the license server, the website only starts and confirms ----------
+
+def shop():
+    return call("/api/shop")
+
+
+def user_purchases(discord_id):
+    return call(f"/api/users/{_seg(discord_id)}/subscriptions").get("subscriptions", [])
+
+
+def user_subscribe(discord_id, item, key=None, name=None):
+    """Start a purchase: returns {id, approveUrl} (the browser is sent to approveUrl, on PayPal)."""
+    return call(f"/api/users/{_seg(discord_id)}/subscribe", method="POST", body={"item": item, "key": key or "", "name": name})
+
+
+def user_confirm(discord_id, purchase_id, name=None):
+    """Customer back from PayPal: the license server reads PayPal and answers {subscription, key?}."""
+    return call(f"/api/users/{_seg(discord_id)}/subscriptions/{_seg(purchase_id)}/confirm", method="POST",
+                body={"name": name})
+
+
+def user_cancel(discord_id, purchase_id, name=None):
+    return call(f"/api/users/{_seg(discord_id)}/subscriptions/{_seg(purchase_id)}/cancel", method="POST",
+                body={"name": name})
+
+
+def purchases(owner=None):
+    return call("/api/subscriptions", query={"owner": owner}).get("subscriptions", [])
+
+
+def purchase_sync(purchase_id, actor=None):
+    return call(f"/api/subscriptions/{_seg(purchase_id)}/sync", method="POST", body={"actor": actor})["subscription"]
+
+
+def purchase_cancel(purchase_id, actor=None):
+    return call(f"/api/subscriptions/{_seg(purchase_id)}/cancel", method="POST", body={"actor": actor})["subscription"]
+
+
 def user_reset(discord_id, key, name=None):
     return call(
         f"/api/users/{_seg(discord_id)}/keys/{_seg(key)}/reset", method="POST", body={"name": name}

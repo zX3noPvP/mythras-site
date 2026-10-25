@@ -523,4 +523,24 @@
     form.addEventListener("change", refresh);
     refresh();
   }
+  // shop: back from PayPal but not confirmed yet. Ask our own server again every 3 s for 60 s (it asks the
+  // license server, which reads PayPal); reload when paid so the server renders the key
+  var wait = document.querySelector("[data-shop-poll]");
+  if (wait) {
+    var tries = 0;
+    var poll = function () {
+      tries += 1;
+      var body = new URLSearchParams({ id: wait.dataset.id, csrf_token: wait.dataset.csrf });
+      fetch(wait.dataset.url, { method: "POST", body: body, credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.paid) { window.location.reload(); return; }
+          if (tries < 20) { setTimeout(poll, 3000); return; }
+          wait.querySelector("[data-wait-text]").hidden = true;
+          wait.querySelector("[data-slow-text]").hidden = false;
+        })
+        .catch(function () { if (tries < 20) setTimeout(poll, 3000); });
+    };
+    setTimeout(poll, 3000);
+  }
 })();

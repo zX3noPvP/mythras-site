@@ -223,7 +223,7 @@
     <header class="section-head center reveal">
       <p class="kicker">{{ _("Pricing") }}</p>
       <h2>{{ _("Monthly plans. No commitment.") }}</h2>
-      <p>{{ _("Free to start, Pro for everything. Pro is a one-month license; Anti-XRay and Anti-ESP are add-ons for Free or Pro that you pay once and keep forever. Buy them with a ticket on our Discord server.") }}</p>
+      <p>{% if SHOP.enabled %}{{ _("Free to start, Pro for everything. Pro is a monthly PayPal subscription you can cancel any time; Anti-XRay and Anti-ESP are add-ons for Free or Pro that you pay once and keep for ever.") }}{% else %}{{ _("Free to start, Pro for everything. Pro is a one-month license; Anti-XRay and Anti-ESP are add-ons for Free or Pro that you pay once and keep forever. Buy them with a ticket on our Discord server.") }}{% endif %}</p>
     </header>
 
     <div class="pricing">
@@ -232,17 +232,17 @@
         {% if key == 'pro' %}<span class="plan-flag">{{ _("Most popular") }}</span>{% endif %}
         <h3>{{ tier.name }}</h3>
         <p class="plan-desc">{{ _(tier.description) }}</p>
-        <p class="plan-price">{{ tier.price }}<span>{{ _(tier.period) }}</span></p>
+        <p class="plan-price">{{ price_of(key, tier.price) }}<span>{{ _(tier.period) }}</span></p>
         {% if key == 'free' and FREE_LINKS %}
           <a class="btn btn-outline full" href="{{ FREE_LINKS[0].url }}" target="_blank" rel="noopener">{{ _("Download free") }}</a>
           {% if FREE_LINKS|length > 1 %}<p class="free-links small">{{ _("Also on:") }} {% for l in FREE_LINKS[1:] %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
         {% else %}
-        {% if key == 'pro' and PAYPAL_PRO %}
-        <a class="btn btn-primary full" href="{{ url_for('dashboard', _anchor='plans') if current_user else url_for('login', next='/dashboard') }}">{{ _("Subscribe with PayPal") }}</a>
+        {% if key == 'pro' and SHOP.enabled %}
+        <a class="btn btn-primary full" href="{{ url_for('shop', _anchor='pro') }}">{{ _("Subscribe with PayPal") }}</a>
         {% elif key != 'free' and SUPPORT_DISCORD %}
         <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
         {% else %}
-        <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ url_for('dashboard', _anchor='plans') if current_user else url_for('login') }}">
+        <a class="btn {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %} full" href="{{ url_for('shop') }}">
           {% if key == 'free' %}{{ _("Start free") }}{% else %}{{ _("Get %(name)s", name=tier.name) }}{% endif %}
         </a>
         {% endif %}
@@ -257,9 +257,9 @@
         <span class="plan-flag plan-flag-addon">{{ _("Add-on") }}</span>
         <h3>{{ addon.name }}</h3>
         <p class="plan-desc">{{ _(addon.description) }}</p>
-        <p class="plan-price">{{ addon.price }}<span>{{ _(addon.period) }}</span></p>
-        {% if PAYPAL %}
-        <a class="btn btn-outline full" href="{{ url_for('dashboard', _anchor='plans') if current_user else url_for('login', next='/dashboard') }}">{{ _("Pay with PayPal") }}</a>
+        <p class="plan-price">{{ price_of(key, addon.price) }}<span>{{ _(addon.period) }}</span></p>
+        {% if SHOP.enabled %}
+        <a class="btn btn-outline full" href="{{ url_for('shop', _anchor=key) }}">{{ _("Pay with PayPal") }}</a>
         {% elif SUPPORT_DISCORD %}
         <a class="btn btn-outline full" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Buy on Discord") }}</a>
         {% endif %}
