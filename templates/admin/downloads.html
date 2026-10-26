@@ -19,6 +19,12 @@
     </div>
     <form method="post" action="{{ url_for('admin_downloads_upload') }}" enctype="multipart/form-data" class="grid-form upload-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>{{ _("What") }}
+        <select name="product">
+          <option value="plugin">{{ _("Mythras plugin (loader)") }}</option>
+          <option value="proxy">MythrasProxy (Velocity / BungeeCord)</option>
+        </select>
+      </label>
       <label>{{ _("Plugin jar") }}
         <input type="file" name="jar" accept=".jar,application/java-archive" required>
       </label>
@@ -27,17 +33,18 @@
       </label>
       <button class="btn btn-primary" type="submit">{{ icon('arrow') }}{{ _("Publish") }}</button>
     </form>
-    <p class="muted small pad">{{ _("Name and version are read from plugin.yml inside the jar. The newest build is served right away to every customer with an active license. The last 5 builds are kept.") }}</p>
+    <p class="muted small pad">{{ _("Name and version are read from plugin.yml inside the jar. The newest build is served right away to every customer with an active license. The last 5 builds are kept.") }} {{ _("MythrasProxy: version from velocity-plugin.json or bungee.yml; customers with an active Pro license download it from their dashboard.") }}</p>
   </section>
 
+  {% for title, rows, empty in ((_("Builds") ~ " · Mythras", versions, _("No build published yet. Customers see no download button until you upload one.")), (_("Builds") ~ " · MythrasProxy", proxy_versions, _("No MythrasProxy build yet. Pro customers see its download button once you upload one."))) %}
   <section class="panel">
-    <div class="panel-head"><h2>{{ icon('film') }}{{ _("Builds") }}</h2></div>
-    {% if versions %}
+    <div class="panel-head"><h2>{{ icon('film') }}{{ title }}</h2></div>
+    {% if rows %}
     <div class="table-wrap">
       <table class="table">
         <thead><tr><th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("File") }}</th><th scope="col">{{ _("Uploaded") }}</th><th scope="col">{{ _("Size") }}</th><th scope="col">SHA-256</th></tr></thead>
         <tbody>
-          {% for v in versions %}
+          {% for v in rows %}
           <tr>
             <td><b>{{ v.name }} {{ v.version }}</b>{% if loop.first %} <span class="badge badge-pro">{{ _("Live") }}</span>{% endif %}{% if v.changelog %}<br><span class="muted small">{{ v.changelog }}</span>{% endif %}</td>
             <td class="mono small">{{ v.file }}</td>
@@ -50,8 +57,9 @@
       </table>
     </div>
     {% else %}
-    <p class="muted pad">{{ _("No build published yet. Customers see no download button until you upload one.") }}</p>
+    <p class="muted pad">{{ empty }}</p>
     {% endif %}
   </section>
+  {% endfor %}
 </div>
 {% endblock %}

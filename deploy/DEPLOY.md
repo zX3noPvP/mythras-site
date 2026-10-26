@@ -328,6 +328,10 @@ ssh root@85.155.151.23 'mv /opt/mythras-site/data/downloads/upload.jar.part /opt
 
 Il sito usa il jar più recente nella cartella `/opt/mythras-site/data/downloads/` e conserva le ultime 5 versioni.
 
+**MythrasProxy** (Velocity / BungeeCord): stessa pagina, in **Cosa** scegli *MythrasProxy*. La versione viene letta da
+`velocity-plugin.json` o `bungee.yml`. I file stanno in `/opt/mythras-site/data/downloads/proxy/` (ultime 5 versioni) e
+lo scaricano dalla dashboard solo i clienti con una licenza **Pro** attiva.
+
 ## Aggiornare il sito
 
 **PC** – ricrea l'archivio e caricalo:

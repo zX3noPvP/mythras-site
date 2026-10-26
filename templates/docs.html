@@ -238,6 +238,7 @@
     <section id="proxy" class="wiki-section doc-section">
       <h2>{{ _("8. MythrasProxy (Velocity / BungeeCord)") }} <span class="badge badge-pro">Pro</span></h2>
       <p>{{ _("A free companion plugin for the proxy: download <code>MythrasProxy-&lt;version&gt;.jar</code> and put it in the <code>plugins/</code> folder of Velocity or BungeeCord/Waterfall (the same jar works on both). On every Mythras server set:")|safe }}</p>
+      {% if current_user %}<p><a class="btn btn-outline btn-sm" href="{{ url_for('dashboard', _anchor='download') }}">{{ icon('arrow') }}{{ _("Download MythrasProxy") }}</a> <span class="muted small">{{ _("In your customer area, with an active Pro license.") }}</span></p>{% endif %}
       {{ code('network:\n  enabled: true\n  server-name: "lobby"      # the name of this server in the proxy\n  proxy-plugin: true') }}
       <ul class="wiki-list">
         <li>{{ _("<b>Network alerts</b>: staff see the alerts of every server, on any server they are, with the server name; clicking one takes them there (<code>/server</code>). Permission on the proxy: <code>mythras.alerts</code> (e.g. with LuckPerms on the proxy).")|safe }}</li>

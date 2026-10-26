@@ -894,3 +894,6 @@ input:user-invalid { border-color: var(--red); }
 .shop-wait { padding: var(--s6) var(--s5); text-align: center; }
 .shop-done pre.mono { background: #050505; border: 1px solid var(--line); padding: var(--s3); overflow-x: auto; }
 .center { text-align: center; }
+
+.download-proxy { margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--line); }
+.download-proxy .download-title { font-size: 1.1rem; }

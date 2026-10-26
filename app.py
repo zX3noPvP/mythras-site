@@ -843,6 +843,7 @@ def dashboard():
         purchases=purchases,
         renews=renews,
         download=latest_jar if active else None,
+        proxy=downloads.latest("proxy") if any(k.get("plan") == "pro" for k in active) else None,
         download_exists=latest_jar is not None,
         active_count=len(active),
         servers_online=sum(k.get("activeServers") or 0 for k in active),
@@ -897,6 +898,30 @@ def download_plugin():
         flash(t("You need an active license to download the plugin."), "error")
         return redirect(url_for("dashboard", _anchor="plans"))
     jar = downloads.latest()
+    if not jar:
+        flash(t("No download is available yet. Please try again later."), "error")
+        return redirect(url_for("dashboard"))
+    log.info("Download %s by %s", jar["file"], user["discord_id"])
+    resp = send_file(jar["path"], as_attachment=True, download_name=jar["download_name"],
+                     mimetype="application/java-archive", max_age=0)
+    resp.headers["X-Content-SHA256"] = jar["sha256"]
+    return resp
+
+
+@app.get("/download/proxy")
+@login_required
+def download_proxy():
+    """MythrasProxy (Velocity / BungeeCord): network alerts and bans are a Pro feature."""
+    user = current_user()
+    try:
+        keys = mythras_api.user_keys(user["discord_id"]).get("keys", [])
+    except MythrasError as err:
+        flash(err.message, "error")
+        return redirect(url_for("dashboard"))
+    if not any(k.get("status") == "active" and k.get("plan") == "pro" for k in keys):
+        flash(t("MythrasProxy needs an active Pro license."), "error")
+        return redirect(url_for("dashboard"))
+    jar = downloads.latest("proxy")
     if not jar:
         flash(t("No download is available yet. Please try again later."), "error")
         return redirect(url_for("dashboard"))
@@ -1963,7 +1988,8 @@ def admin_log():
 @app.get("/admin/downloads")
 @admin_required
 def admin_downloads():
-    return render_template("admin/downloads.html", versions=downloads.versions(), max_mb=downloads.MAX_UPLOAD // 1048576)
+    return render_template("admin/downloads.html", versions=downloads.versions(), proxy_versions=downloads.versions("proxy"),
+                           max_mb=downloads.MAX_UPLOAD // 1048576)
 
 
 @app.post("/admin/downloads/upload")
@@ -1977,11 +2003,14 @@ def admin_downloads_upload():
         flash(t("Choose a .jar file to upload."), "error")
         return redirect(url_for("admin_downloads"))
     try:
-        info = downloads.save_upload(storage, request.form.get("changelog", ""))
+        product = request.form.get("product", "plugin")
+        if product not in downloads.PRODUCTS:
+            raise ValueError("Choose what you are publishing.")
+        info = downloads.save_upload(storage, request.form.get("changelog", ""), product)
     except ValueError as err:
         flash(t(str(err)), "error")
         return redirect(url_for("admin_downloads"))
-    log.warning("New plugin build %s (%s) uploaded by %s, sha256 %s", info["file"], info["version"], actor_name(), info["sha256"])
+    log.warning("New %s build %s (%s) uploaded by %s, sha256 %s", product, info["file"], info["version"], actor_name(), info["sha256"])
     flash(t("Published %(name)s %(version)s. Customers now download this version.", name=info["name"], version=info["version"]), "success")
     return redirect(url_for("admin_downloads"))
 

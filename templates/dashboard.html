@@ -44,6 +44,17 @@
     </div>
     {% if download.changelog %}<p class="changelog">{{ download.changelog }}</p>{% endif %}
     <p class="muted small sha">SHA-256 <span class="mono">{{ download.sha256 }}</span></p>
+    {% if proxy %}
+    <div class="download-row download-proxy">
+      <div>
+        <p class="kicker">MythrasProxy · Velocity / BungeeCord</p>
+        <h3 class="download-title">{{ proxy.name }} <span class="red">{{ proxy.version }}</span></h3>
+        <p class="muted small">{{ _("Network alerts and network bans for your proxy. Updated %(date)s", date=proxy.uploaded|date) }} · {{ proxy.size_mb }} MB · <a href="{{ url_for('docs_page', _anchor='proxy') }}">{{ _("How to install") }}</a></p>
+      </div>
+      <a class="btn btn-outline" href="{{ url_for('download_proxy') }}">{{ icon('arrow') }}{{ _("Download MythrasProxy") }}</a>
+    </div>
+    {% if proxy.changelog %}<p class="changelog">{{ proxy.changelog }}</p>{% endif %}
+    {% endif %}
   </section>
   {% elif download_exists %}
   <section class="panel download-panel locked">

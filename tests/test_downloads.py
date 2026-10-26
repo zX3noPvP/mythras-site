@@ -119,6 +119,44 @@ for v in ("2.0", "2.1", "2.2", "2.3", "2.4"):
 jars = [f for f in os.listdir(DL) if f.endswith(".jar")]
 check("only the last 5 builds kept", len(jars) == 5 and downloads.latest()["version"] == "2.4")
 
+# MythrasProxy: its own builds, for active Pro keys only
+def make_proxy(version="1.0.0", kind="velocity"):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        if kind == "velocity":
+            z.writestr("velocity-plugin.json", '{"id": "mythras-proxy", "name": "MythrasProxy", "version": "%s"}' % version)
+        elif kind == "bungee":
+            z.writestr("bungee.yml", f"name: MythrasProxy\nversion: {version}\nmain: eu.mythras.proxy.Bungee\n")
+        z.writestr("eu/mythras/proxy/Main.class", b"\xca\xfe\xba\xbe")
+    return buf.getvalue()
+def upload_proxy(c, data, changelog=""):
+    return c.post("/admin/downloads/upload", data={"csrf_token": "tok", "product": "proxy", "changelog": changelog,
+                  "jar": (io.BytesIO(data), "proxy.jar")}, content_type="multipart/form-data", follow_redirects=True)
+plugin_before = downloads.latest()["version"]
+t = html.unescape(client(OWNER).get("/dashboard").data.decode())
+check("no proxy build -> no proxy button", "/download/proxy" not in t)
+check("proxy jar without a version refused", "No velocity-plugin.json or bungee.yml" in html.unescape(upload_proxy(ad, make_proxy(kind="none")).data.decode()))
+t = html.unescape(upload_proxy(ad, make_proxy("1.0.0"), "Network bans").data.decode())
+check("proxy published (version from velocity-plugin.json), listed apart", "Published MythrasProxy 1.0.0" in t and "Builds · MythrasProxy" in t)
+check("proxy upload does not change the plugin build", downloads.latest()["version"] == plugin_before and downloads.latest("proxy")["version"] == "1.0.0")
+time.sleep(1.05)
+upload_proxy(ad, make_proxy("1.1.0", kind="bungee"))
+check("bungee.yml version read too", downloads.latest("proxy")["version"] == "1.1.0")
+t = html.unescape(client(OWNER).get("/dashboard").data.decode())
+check("Pro customer sees Download MythrasProxy", 'href="/download/proxy"' in t and "1.1.0" in t)
+r = client(OWNER).get("/download/proxy")
+check("Pro customer downloads the proxy jar", r.status_code == 200 and "MythrasProxy-1.1.0.jar" in r.headers["Content-Disposition"]
+      and r.headers.get("X-Content-SHA256") == downloads.latest("proxy")["sha256"])
+r.close()
+mock.keys["MYTH-TEST-0001-ABCD-EFGH"]["plan"] = "free"
+check("Free key -> no proxy button, download refused", 'href="/download/proxy"' not in html.unescape(client(OWNER).get("/dashboard").data.decode())
+      and "MythrasProxy needs an active Pro license" in client(OWNER).get("/download/proxy", follow_redirects=True).data.decode())
+mock.keys["MYTH-TEST-0001-ABCD-EFGH"]["plan"] = "pro"
+check("no license -> proxy refused", client(NOKEY).get("/download/proxy").status_code == 302 and client().get("/download/proxy").status_code == 302)
+r = ad.post("/admin/downloads/upload", data={"csrf_token": "tok", "product": "nope", "jar": (io.BytesIO(make_proxy()), "p.jar")},
+            content_type="multipart/form-data", follow_redirects=True)
+check("unknown product refused", "Choose what you are publishing." in html.unescape(r.data.decode()))
+
 # size limits
 old = downloads.MAX_UPLOAD
 downloads.MAX_UPLOAD = 2000
