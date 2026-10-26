@@ -137,8 +137,8 @@ terms = text(anon.get("/terms"))
 check("terms: Payments and refunds", "Payments and refunds" in terms and "renews every month" in terms and "for ever" in terms and "1 server per key" in terms)
 check("privacy: PayPal listed when the shop is on", "PayPal (Europe)" in text(anon.get("/privacy")))
 docs_t = text(anon.get("/docs"))
-check("docs 1.25: add-ons, buying, /ac license, MythrasProxy", "Anti-StorageESP" in docs_t and "Buying." in docs_t
-      and "/ac license" in docs_t and "MythrasProxy" in docs_t and "1.25" in docs_t and "IP not allowed" in docs_t)
+check("docs 1.25: add-ons, buying, no /ac license, MythrasProxy", "Anti-StorageESP" in docs_t and "Buying." in docs_t
+      and "/ac license" not in docs_t and "On the website" in docs_t and "MythrasProxy" in docs_t and "1.25" in docs_t and "IP not allowed" in docs_t)
 it = client(BUYER); it.get("/lang/it")
 check("Italian shop", "Abbonati con PayPal" in text(it.get("/shop")))
 

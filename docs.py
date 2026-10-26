@@ -99,7 +99,6 @@ COMMANDS = [
     ("/ac debug <player>", "Detailed console log for one player", "mythras.admin", "all"),
     ("/ac perf [checks|reset]", "Plugin performance", "mythras.admin", "all"),
     ("/ac reload", "Reload config and messages", "mythras.admin", "all"),
-    ("/ac license", "Your plan and add-ons, e.g. Mythras Pro + Anti-XRay", "mythras.admin", "all"),
     ("/ac lang [code]", "Show or change the language of all messages: en English, it Italiano, es Español, pt Português, de Deutsch, fr Français, pl Polski, zh 中文 (or any messages_<code>.yml you add); saved in config.yml", "mythras.admin", "all"),
     ("/ac gui", "Players menu", "mythras.admin", "Pro"),
     ("/ac settings", "Menu to turn every check on/off, on Bedrock players or not, and with or without punishments (each change asks for confirmation and is saved in config.yml)", "mythras.admin", "Pro"),

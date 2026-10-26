@@ -110,7 +110,7 @@
       <p>{{ _("<b>Buying.</b> On mythras.eu log in with Discord, open the shop and pay with PayPal.")|safe }}</p>
       <ul class="wiki-list">
         <li>{{ _("<b>Pro</b>: the key appears in your customer area as soon as PayPal confirms the first payment. If you already have a Free key (for an add-on), you can turn that key into Pro and keep its add-ons.")|safe }}</li>
-        <li>{{ _("<b>Add-on</b>: choose one of your keys, Free or Pro; without a key you get a <b>Free key</b> with the add-on (install it with <code>mlicense &lt;KEY&gt;</code> like any key). It turns on by itself within a few minutes, no restart needed (the console shows <code>Add-on Anti-XRay active.</code>). <code>/ac license</code> shows your plan and add-ons, e.g. <code>Mythras Pro + Anti-XRay</code>.")|safe }}</li>
+        <li>{{ _("<b>Add-on</b>: choose one of your keys, Free or Pro; without a key you get a <b>Free key</b> with the add-on (install it with <code>mlicense &lt;KEY&gt;</code> like any key). It turns on by itself within a few minutes, no restart needed (the console shows <code>Add-on Anti-XRay active.</code>).")|safe }}</li>
       </ul>
       <p>{{ _("<b>Renewal and cancelling.</b> Pro renews every month by itself and moves the expiry of your key (3 days of margin after each billing date). You can cancel at any time from the customer area or from PayPal: the key keeps working until the end of the month you paid. Add-ons are paid once and never expire; if your Pro ends, the key becomes a Free key and its add-ons keep working.")|safe }}</p>
       <p>{{ _("<b>AI learning (Pro).</b> The AI looks at 20 combat behaviours every 20 hits (clicks, rotations, aim, reach, target switching) and learns what is normal on your server, from punished and clean players. Every setting can be tuned, staff can train it (<code>/ac ai label</code>), and it can punish.")|safe }}</p>
@@ -147,15 +147,21 @@
 
     <section id="license" class="wiki-section doc-section">
       <h2>{{ _("4. Managing your license") }}</h2>
-      <p>{{ _("On our Discord server:") }}{% if SUPPORT_DISCORD %} <a href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ _("Discord server") }}</a>{% endif %}</p>
-      <ul class="wiki-list">
-        <li>{{ _("<code>/license redeem key:&lt;KEY&gt;</code>: links the key to your Discord account and gives you the plan role.")|safe }}</li>
-        <li>{{ _("<code>/license info</code>: your licenses, plan, expiry and servers in use.")|safe }}</li>
-        <li>{{ _("<code>/license reset key:&lt;KEY&gt;</code>: frees the servers of your key (for example after moving to a new machine). Once every 24 hours.")|safe }}</li>
-      </ul>
-      <p>{{ _("The same actions are available in the customer area of this website.") }} <a href="{{ url_for('dashboard') }}">{{ _("My licenses") }}</a></p>
+      <p>{{ _("You can do everything from the <b>customer area of this website</b> or from our <b>Discord server</b>:")|safe }}</p>
+      <div class="table-wrap">
+        <table class="table wiki-table">
+          <thead><tr><th scope="col">{{ _("What") }}</th><th scope="col">{{ _("On the website") }}</th><th scope="col">{{ _("On Discord") }}</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">{{ _("Link a key to your Discord account (and get the plan role)") }}</th><td>{{ _("My licenses → Link a key") }}</td><td><code>/license redeem key:&lt;KEY&gt;</code></td></tr>
+            <tr><th scope="row">{{ _("See your licenses, plan, add-ons, expiry and servers in use") }}</th><td>{{ _("My licenses") }}</td><td><code>/license info</code></td></tr>
+            <tr><th scope="row">{{ _("Free the servers of your key (e.g. after moving to a new machine), once every 24 hours") }}</th><td>{{ _("My licenses → Reset servers") }}</td><td><code>/license reset key:&lt;KEY&gt;</code></td></tr>
+            <tr><th scope="row">{{ _("Buy Pro or an add-on, cancel the subscription") }}</th><td>{{ _("Shop, My licenses → Purchases") }}</td><td>{{ _("ticket") }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><a class="btn btn-outline btn-sm" href="{{ url_for('dashboard') }}">{{ icon('key') }}{{ _("My licenses") }}</a>{% if SUPPORT_DISCORD %} <a class="btn btn-outline btn-sm" href="{{ SUPPORT_DISCORD }}" target="_blank" rel="noopener">{{ icon('discord') }}{{ _("Discord server") }}</a>{% endif %}</p>
       <p>{{ _("<b>Panel.</b> In the customer area you see your servers (online, players, TPS, versions), the alerts, punishments and saved replays of the last 30 days, the most flagged players and checks, and a page for each player. It updates every 10 seconds. Name your servers with <code>panel.server-name</code> in config.yml.")|safe }}</p>
-      <p>{{ _("<b>Moving to another machine:</b> reset the servers of your key, then use <code>mlicense &lt;KEY&gt;</code> on the new server.")|safe }}</p>
+      <p>{{ _("<b>Moving to another machine:</b> reset the servers of your key (on the website or with <code>/license reset</code>), then use <code>mlicense &lt;KEY&gt;</code> on the new server.")|safe }}</p>
       <p>{{ _("<b>Updates:</b> Pro updates itself. At every restart the server downloads the latest version. When a new <code>Mythras-&lt;version&gt;.jar</code> is published, the console and the admins joining the server are told; download it from the customer area (it updates the loader and the Free plan).")|safe }}</p>
       <p>{{ _("<b>If our license server is unreachable</b>, your server keeps starting with your plan for <b>72 hours</b>.")|safe }}</p>
     </section>
@@ -272,7 +278,7 @@
     <section id="news" class="wiki-section doc-section">
       <h2>{{ _("10. What's new") }}</h2>
       <ul class="wiki-list">
-        <li>{{ _("<b>1.25</b>: the add-ons <b>Anti-XRay</b> and <b>Anti-ESP</b> (with Anti-StorageESP) are paid once (5,99 €) and kept for ever, also on Free servers (a Free key with the add-on). <code>/ac license</code> shows plan and add-ons.")|safe }}</li>
+        <li>{{ _("<b>1.25</b>: the add-ons <b>Anti-XRay</b> and <b>Anti-ESP</b> (with Anti-StorageESP) are paid once (5,99 €) and kept for ever, also on Free servers (a Free key with the add-on).")|safe }}</li>
         <li>{{ _("<b>1.24</b>: two plans, <b>Free</b> and <b>Pro</b> (19,99 €/month, everything that was Enterprise, 1 server per key), paid with PayPal on mythras.eu. Anti-XRay and Anti-ESP became add-ons and turn on without a restart. Keys bought before (Base, Pro, Enterprise) are now Pro and keep their servers.")|safe }}</li>
         <li>{{ _("<b>1.23</b>: the answers you give in the setup link on mythras.eu configure the plugin by themselves (at the next restart or within 6 hours); your later changes in game or in config.yml stay until you fill in the link again. A key can be locked to your server's IP address.")|safe }}</li>
         <li>{{ _("<b>1.22</b>: new detections: Criticals &quot;Jump&quot; (Meteor), ElytraFly &quot;vanilla&quot; while using rockets, ChestStealers with random delays (Meteor steal); Blink catches holds from 0.4 s.")|safe }}</li>
@@ -302,7 +308,7 @@
           <ul class="wiki-list">
             <li>{{ _("<code>the key does not exist</code>: check the key;")|safe }}</li>
             <li>{{ _("<code>revoked</code> or <code>expired</code>;")|safe }}</li>
-            <li>{{ _("<code>maximum number of servers</code>: a Pro key works on 1 server; reset the servers with <code>/license reset</code>;")|safe }}</li>
+            <li>{{ _("<code>maximum number of servers</code>: a Pro key works on 1 server; reset the servers in the customer area or with <code>/license reset</code>;")|safe }}</li>
             <li>{{ _("<code>IP not allowed</code>: the key is locked to other IP addresses (change them in the customer area).")|safe }}</li>
           </ul>
         </dd>
