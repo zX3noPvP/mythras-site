@@ -35,7 +35,7 @@
             <td>
               <span class="user-cell">
                 {% if u.avatar %}<img src="{{ u.avatar }}" alt="" width="28" height="28">{% else %}<span class="mini-avatar">{{ u.username[:1]|upper }}</span>{% endif %}
-                <b>{{ u.username }}</b>
+                <a href="{{ url_for('admin_keys', q=u.discord_id, _anchor='delete-keys') }}" title="{{ _('Keys of this customer and Delete all keys') }}"><b>{{ u.username }}</b></a>
               </span>
             </td>
             <td>
@@ -45,7 +45,7 @@
               {% for k in ks %}<a class="mono" href="{{ url_for('admin_key', key=k.key) }}">{{ k.key[:9] }}…</a> <span class="badge badge-{{ k.plan }}">{{ k.plan|plan_name }}</span>{{ k.addons|addon_badges }} {{ status_badge(k.status) }}<br>{% else %}<span class="muted">—</span>{% endfor %}
             </td>
             <td class="small nowrap">{{ (u.last_login or u.created_at)|date }}</td>
-            <td class="row-actions"><a class="btn btn-outline btn-sm" href="{{ url_for('admin_new_key', owner=u.discord_id) }}">{{ icon('key') }}{{ _("Create license") }}</a></td>
+            <td class="row-actions"><a class="btn btn-outline btn-sm" href="{{ url_for('admin_new_key', owner=u.discord_id) }}">{{ icon('key') }}{{ _("Create license") }}</a> <a class="btn btn-danger btn-sm" href="{{ url_for('admin_keys', q=u.discord_id, _anchor='delete-keys') }}">{{ icon('x') }}{{ _("Delete keys") }}</a></td>
           </tr>
           {% else %}
           <tr><td colspan="5" class="muted">{{ _("No customer matches this search.") }}</td></tr>

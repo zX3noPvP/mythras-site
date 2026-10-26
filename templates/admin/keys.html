@@ -68,7 +68,7 @@
     {% if keys %}<p class="table-foot muted small">{{ _("1 key") if keys|length == 1 else _("%(n)s keys", n=keys|length) }}</p>{% endif %}
   </section>
 
-  <section class="panel">
+  <section class="panel" id="delete-keys">
     <div class="panel-head">
       <h2>{{ icon('x') }}{{ _("Delete a customer's keys") }}</h2>
       <p class="muted small">{{ _("Deletes every key of this Discord user: the keys stop working and disappear from their area and from this list. Requires a 2FA code from the last 15 minutes.") }}</p>
