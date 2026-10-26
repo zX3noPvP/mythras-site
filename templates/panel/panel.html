@@ -30,32 +30,7 @@
   {{ api_error_box(api_error) }}
 
   {# ---------- servers ---------- #}
-  <section class="panel">
-    <div class="panel-head"><h2>{{ icon('terminal') }}{{ _("Servers") }}</h2><span class="muted small">{{ servers|selectattr('online')|list|length }}/{{ servers|length }} {{ _("online") }}</span></div>
-    {% if servers %}
-    <div class="server-grid">
-      {% for s in servers %}
-      <article class="server-card">
-        <div class="server-top">
-          <span class="online-dot {% if s.online %}is-on{% endif %}" aria-hidden="true"></span>
-          <h3>{{ s.name or s.server[:8] }}</h3>
-          <span class="small {% if s.online %}on-text{% else %}muted{% endif %}">{{ _("Online") if s.online else _("Offline") }}</span>
-        </div>
-        <dl class="server-meta">
-          <div><dt>{{ _("Players") }}</dt><dd>{{ s.players or 0 }}/{{ s.maxPlayers or 0 }}</dd></div>
-          {% if s.tps is not none and s.tps >= 0 %}<div><dt>TPS</dt><dd>{{ '%.1f'|format(s.tps) }}</dd></div>{% endif %}
-          <div><dt>Mythras</dt><dd class="mono">{{ s.mythras or '—' }}</dd></div>
-          <div><dt>Minecraft</dt><dd class="mono">{{ s.minecraft or '—' }}{% if s.software %} · {{ s.software }}{% endif %}</dd></div>
-          <div><dt>{{ _("Last seen") }}</dt><dd><time class="js-time" data-ms="{{ s.lastSeen }}" data-mode="ago" datetime="{{ s.lastSeen|ms_iso }}">{{ s.lastSeen|ms_date }}</time></dd></div>
-          {% if admin %}<div><dt>{{ _("Key") }}</dt><dd><a class="mono" href="{{ url_for('admin_key', key=s.key) }}">{{ s.key[:9] }}…</a>{% set o = owners.get(s.key) %}{% if o %} · {{ names.get(o) or o }}{% endif %}</dd></div>{% endif %}
-        </dl>
-      </article>
-      {% endfor %}
-    </div>
-    {% elif not api_error %}
-    <div class="empty">{{ icon('shield', 'empty-icon') }}<h3>{{ _("No servers yet: start Mythras with your key") }}</h3><p class="muted">{{ _("Servers appear here a few seconds after they start with Mythras 1.16 or newer.") }} <a href="{{ url_for('docs_page') }}#installation">{{ _("Docs") }}</a></p></div>
-    {% endif %}
-  </section>
+  <div id="servers-box">{% include "panel/_servers.html" %}</div>
 
   {# ---------- overview ---------- #}
   {% if stats %}

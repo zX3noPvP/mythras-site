@@ -475,6 +475,14 @@
       var since = newest();
       load(feedUrl).then(function (data) {
         setLive(true);
+        // server cards too: a server that just started appears without reloading the page
+        var box = document.getElementById("servers-box");
+        if (box && typeof data.servers === "string") {
+          var tpl = document.createElement("template");
+          tpl.innerHTML = data.servers;
+          box.replaceChildren(tpl.content);
+          renderTimes(box);
+        }
         var fresh = rowsFrom(data.html).filter(function (row) { return Number(row.dataset.time) > since; });
         for (var i = fresh.length - 1; i >= 0; i--) {
           fresh[i].classList.add("is-new");

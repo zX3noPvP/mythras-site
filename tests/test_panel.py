@@ -48,6 +48,13 @@ check("token never in page", "test-token" not in r.data.decode())
 j = cu.get(f"/panel/feed?before={nxt}").get_json()
 older = [int(x) for x in re.findall(r'data-time="(\d+)"', j["html"])]
 check("feed JSON: older page with before=", j["ok"] and older and all(x < int(nxt) for x in older))
+check("live servers box on the page", 'id="servers-box"' in r.data.decode())
+mock.panel_servers.append({"key": K1, "server": "srv-new-0001", "name": "Skyblock", "online": True, "players": 3, "maxPlayers": 50,
+                           "tps": 20.0, "mythras": "1.25.0", "minecraft": "1.21.4", "software": "Paper", "lastSeen": int(time.time() * 1000)})
+j = cu.get("/panel/feed").get_json()
+check("feed JSON brings the server cards: a new server shows up without reloading", "Skyblock" in j["servers"] and "Survival" in j["servers"]
+      and "Network-1" not in j["servers"])
+mock.panel_servers.pop()
 j = cu.get("/panel/feed?type=replay").get_json()
 check("feed filter type=replay + copy command", j["ok"] and "type-alert" not in j["html"] and "/ac replay play " in j["html"])
 r, t = page(cu, "/panel?type=punish&days=30")

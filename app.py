@@ -1530,7 +1530,9 @@ def panel_feed(discord_id, admin):
     html_rows = render_template("panel/_rows.html", events=page.get("events", []), admin=admin,
                                 server_names={s["server"]: s.get("name") or s["server"][:8] for s in servers},
                                 owners=owners, names=known_names() if admin else {})
-    resp = jsonify(ok=True, html=html_rows, next=page.get("next") or 0)
+    html_servers = render_template("panel/_servers.html", servers=servers, admin=admin, api_error=None,
+                                   owners=owners, names=known_names() if admin else {})
+    resp = jsonify(ok=True, html=html_rows, servers=html_servers, next=page.get("next") or 0)
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
