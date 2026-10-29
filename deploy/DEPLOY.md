@@ -284,6 +284,13 @@ Il sito non incassa: i pulsanti **Buy on Discord** aprono il server Discord indi
 2. **Rinnovo**: apri la chiave in **Admin → Chiavi** e premi **Rinnova (+1 mese)**.
 3. **Rimborso**: **Revoca** o **Elimina** la chiave dalla stessa pagina.
 
+### Bot dei ticket
+
+Il pannello in **#tickets** (pulsanti *General Questions* e *Billing & Sales*), i canali privati in
+**💰 BILLING & SALES** e le trascrizioni in **#transcripts** (pagina sul sito, `/transcripts/...`) li gestisce
+`ticketbot/bot.py`, servizio `mythras-tickets`. Installazione passo passo: [ticketbot/README.md](../ticketbot/README.md).
+Tutte le trascrizioni anche in **Admin → Tickets**.
+
 ## Pubblicare una nuova versione del plugin
 
 I clienti con una licenza attiva vedono il pulsante **Scarica** nella dashboard e ricevono sempre **l'ultima versione** pubblicata.

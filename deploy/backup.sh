@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Nightly full backup (mythras-backup.timer), kept in /var/backups/mythras-site/nightly-*.tgz (newest 14).
-# Contains: website database, /etc/mythras-site.env, and the license server's database, settings and
+# Contains: website database (with the ticket transcripts) and the transcript attachments, /etc/mythras-site.env, and the license server's database, settings and
 # signing keys (keys/private.key: without it you cannot issue licenses any more). Root-only: it holds secrets.
 # Copy it OFF the VPS too: tools/pull_backups.ps1 downloads the newest one to your PC.
 set -euo pipefail
@@ -20,6 +20,7 @@ snapshot() {  # SQLite online backup: consistent while the service keeps running
 
 mkdir -p "$work/site" "$work/license"
 [ -f "$SITE/data/mythras.db" ] && snapshot "$SITE/data/mythras.db" "$work/site/mythras.db"
+[ -d "$SITE/data/transcripts" ] && cp -a "$SITE/data/transcripts" "$work/site/"  # ticket attachments
 [ -f /etc/mythras-site.env ] && cp -a /etc/mythras-site.env "$work/site/"
 if [ -d "$LICENSE" ]; then
     for db in "$LICENSE"/*.db; do

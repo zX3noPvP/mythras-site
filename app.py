@@ -43,6 +43,7 @@ import i18n  # noqa: E402
 import mythras_api  # noqa: E402  (reads env after load_dotenv)
 import downloads  # noqa: E402
 import docs  # noqa: E402
+import tickets  # noqa: E402
 from mythras_api import MythrasError  # noqa: E402
 
 log = logging.getLogger("mythras.site")
@@ -61,6 +62,9 @@ DATABASE = Path(os.getenv("DATABASE_PATH", BASE_DIR / "data" / "mythras.db"))
 
 # Discord server invite: support, and purchases (customers open a ticket there; no online payments on the site)
 SUPPORT_DISCORD = os.getenv("SUPPORT_DISCORD_URL", "")
+# ticket bot (ticketbot/bot.py): the website asks Discord with its token whether a member is staff
+TICKETS_BOT_TOKEN = os.getenv("TICKETS_BOT_TOKEN", "")
+TICKETS_GUILD_ID = os.getenv("TICKETS_GUILD_ID", "")
 # Free version download pages (only https links are shown)
 FREE_LINKS = [
     {"name": name, "url": os.getenv(env, "").strip()}
@@ -229,6 +233,7 @@ def init_db():
     db = sqlite3.connect(DATABASE)
     db.executescript(SCHEMA)
     db.executescript(admin_2fa.SCHEMA)
+    db.executescript(tickets.SCHEMA)
     have = {r[1] for r in db.execute("PRAGMA table_info(orders)")}
     for col in ("subscription_id", "sub_status", "renews_at", "ends_at"):
         if col not in have:  # databases created before monthly plans
@@ -474,8 +479,10 @@ def security_headers(resp):
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
     resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
-    if request.path.startswith(("/admin", "/dashboard", "/download", "/panel")):
+    if request.path.startswith(("/admin", "/dashboard", "/download", "/panel", "/transcripts")):
         resp.headers["Cache-Control"] = "no-store"
+    if request.path.startswith("/transcripts"):
+        resp.headers["X-Robots-Tag"] = "noindex, nofollow"
     return resp
 
 
@@ -507,6 +514,17 @@ def format_date(value):
     try:
         fmt = "%d %b %Y" if g.get("lang", "en") == "en" else "%d/%m/%Y"
         return datetime.fromisoformat(str(value).replace("Z", "+00:00")).strftime(fmt)
+    except ValueError:
+        return value
+
+
+@app.template_filter("iso_time")
+def format_iso_time(value):
+    if not value:
+        return ""
+    try:
+        fmt = "%d %b %Y, %H:%M UTC" if g.get("lang", "en") == "en" else "%d/%m/%Y %H:%M UTC"
+        return datetime.fromisoformat(str(value)).astimezone(timezone.utc).strftime(fmt)
     except ValueError:
         return value
 
@@ -643,6 +661,7 @@ def robots_txt():
         "Disallow: /panel",
         "Disallow: /download",
         "Disallow: /heads/",
+        "Disallow: /transcripts/",
         "Disallow: /login",
         "Disallow: /auth/",
         f"Sitemap: {url_for('sitemap_xml', _external=True)}",
@@ -699,6 +718,7 @@ def login():
         return redirect(url_for("index"))
     state = secrets.token_urlsafe(24)
     session["oauth_state"] = state
+    session["login_next"] = _local_next("")
     params = {
         "client_id": DISCORD_CLIENT_ID,
         "redirect_uri": DISCORD_REDIRECT_URI,
@@ -712,6 +732,7 @@ def login():
 @app.get("/auth/discord/callback")
 def discord_callback():
     expected_state = session.pop("oauth_state", None)
+    next_page = session.pop("login_next", "")
     state = request.args.get("state", "")
     if not expected_state or not secrets.compare_digest(state, expected_state):
         abort(400)
@@ -767,7 +788,7 @@ def discord_callback():
     session.clear()
     session["discord_id"] = me["id"]
     flash(t("Signed in with Discord."), "success")
-    return redirect(url_for("dashboard"))
+    return redirect(next_page or url_for("dashboard"))
 
 
 @app.post("/logout")
@@ -1398,6 +1419,96 @@ def admin_key_action(key, action):
     except MythrasError as err:
         flash(err.message, "error")
     return redirect(url_for("admin_key", key=key))
+
+
+# ---------- ticket transcripts (saved by ticketbot/bot.py) ----------
+
+_staff_cache = {}
+
+
+def _discord_bot_get(path):
+    req = urllib.request.Request(f"{DISCORD_API}/v10{path}", headers={
+        "Authorization": f"Bot {TICKETS_BOT_TOKEN}", "User-Agent": "MythrasAntiCheatSite (1.0)"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.load(resp)
+
+
+def is_ticket_staff(discord_id, kind):
+    """True when the member has, on the Discord server, Administrator or a role that handles this kind of
+    ticket (the same rule as the bot). Asked to Discord with the bot token, remembered for 2 minutes."""
+    if not TICKETS_BOT_TOKEN or not DISCORD_ID_RE.match(TICKETS_GUILD_ID):
+        return False
+    hit = _staff_cache.get((discord_id, kind))
+    if hit and hit[0] > time.time():
+        return hit[1]
+    try:
+        roles = _discord_bot_get(f"/guilds/{TICKETS_GUILD_ID}/roles")
+        member = _discord_bot_get(f"/guilds/{TICKETS_GUILD_ID}/members/{discord_id}")
+    except urllib.error.HTTPError as err:
+        if err.code != 404:
+            log.warning("Discord staff check failed: %s", err.code)
+            return False
+        allowed = False  # not in the server
+    except (urllib.error.URLError, ValueError, OSError) as err:
+        log.warning("Discord staff check failed: %s", err)
+        return False
+    else:
+        mine = [r for r in roles if r["id"] in member.get("roles", []) or r["id"] == TICKETS_GUILD_ID]
+        wanted = tickets.staff_roles(kind)
+        allowed = any(int(r["permissions"]) & 8 or tickets.matches(r, wanted) for r in mine)
+    _staff_cache[(discord_id, kind)] = (time.time() + 120, allowed)
+    return allowed
+
+
+def closed_ticket_or_404(token):
+    """The closed ticket of this token if the visitor may read it: who opened it, admins, ticket staff."""
+    if not tickets.TOKEN_RE.match(token):
+        abort(404)
+    row = get_db().execute("SELECT * FROM tickets WHERE token = ? AND status = 'closed'", (token,)).fetchone()
+    if row is None:
+        abort(404)
+    ticket = tickets.load(row)
+    user = current_user()
+    uid = user["discord_id"]
+    if uid != ticket["opener_id"] and not is_admin(user) and not is_ticket_staff(uid, ticket["kind"]):
+        abort(403)
+    return ticket
+
+
+@app.get("/transcripts/<token>")
+def transcript(token):
+    if current_user() is None:
+        return redirect(url_for("login", next=request.path))
+    ticket = closed_ticket_or_404(token)
+    return render_template("transcript.html", ticket=ticket, inline_types=tickets.INLINE_TYPES)
+
+
+@app.get("/transcripts/<token>/files/<name>")
+def transcript_file(token, name):
+    if current_user() is None:
+        abort(403)
+    ticket = closed_ticket_or_404(token)
+    item = next((f for m in ticket["messages"] for f in m["files"] if f.get("stored") == name), None)
+    path = tickets.attachment_path(token, name)
+    if item is None or path is None or not path.is_file():
+        abort(404)
+    inline = item.get("type") in tickets.INLINE_TYPES
+    return send_file(path, mimetype=item["type"] if inline else "application/octet-stream",
+                     as_attachment=not inline, download_name=tickets.safe_filename(item["name"]))
+
+
+@app.get("/admin/tickets")
+@admin_required
+def admin_tickets():
+    q = (request.args.get("q") or "").strip()[:64]
+    sql = ("SELECT id, kind, status, opener_id, opener_name, claimed_name, closed_name, close_reason, opened_at, "
+           "closed_at, token FROM tickets WHERE status != 'opening'")
+    args = []
+    if q:
+        sql += " AND (opener_id = ? OR opener_name LIKE ? OR CAST(id AS TEXT) = ?)"
+        args += [q, f"%{q}%", q.lstrip("#")]
+    rows = get_db().execute(sql + " ORDER BY id DESC LIMIT 300", args).fetchall()
+    return render_template("admin/tickets.html", rows=rows, q=q, kinds=tickets.KINDS)
 
 
 @app.get("/admin/log")

@@ -36,6 +36,7 @@ fi
 
 tar -xzf "$ARCHIVE" -C "$SITE" --strip-components=1
 "$SITE/.venv/bin/pip" install -q -r "$SITE/requirements.txt"
+"$SITE/.venv/bin/pip" install -q -r "$SITE/ticketbot/requirements.txt"
 
 # permissions: code read-only for the app, only data/ writable, Caddy reads static/
 chown -R root:mythras "$SITE"
@@ -53,6 +54,11 @@ systemctl daemon-reload
 systemctl enable --now mythras-healthcheck.timer mythras-backup.timer >/dev/null 2>&1 || echo "Warning: could not enable the timers"
 
 systemctl restart mythras-site
+# ticket bot: only once it has its token
+if grep -qE '^TICKETS_BOT_TOKEN=.+' /etc/mythras-site.env 2>/dev/null; then
+    systemctl enable mythras-tickets >/dev/null 2>&1 || true
+    systemctl restart mythras-tickets || echo "Warning: ticket bot not started. Check: journalctl -u mythras-tickets -n 50 --no-pager"
+fi
 sleep 2
 if systemctl is-active --quiet mythras-site && curl -fsS -o /dev/null http://127.0.0.1:8000/; then
     echo "Update OK"

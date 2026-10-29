@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Ticket #%(n)s", n=ticket.id) }} · Mythras AntiCheat{% endblock %}
+{% block content %}
+<div class="container app">
+  <header class="app-head">
+    <div>
+      <p class="kicker">{{ _("Transcript") }}</p>
+      <h1>{{ _("Ticket #%(n)s", n=ticket.id) }} · {{ _(ticket.kind_label) }}</h1>
+    </div>
+    {% if is_admin %}<a class="btn btn-ghost" href="{{ url_for('admin_tickets') }}">{{ _("All tickets") }}</a>{% endif %}
+  </header>
+
+  <section class="panel">
+    <dl class="ticket-facts">
+      <div><dt>{{ _("Opened by") }}</dt><dd>{{ ticket.opener_name }} <span class="mono muted">{{ ticket.opener_id }}</span></dd></div>
+      <div><dt>{{ _("Claimed by") }}</dt><dd>{{ ticket.claimed_name or "-" }}</dd></div>
+      <div><dt>{{ _("Closed by") }}</dt><dd>{{ ticket.closed_name or "-" }}</dd></div>
+      <div><dt>{{ _("Opened") }}</dt><dd>{{ ticket.opened_at|iso_time }}</dd></div>
+      <div><dt>{{ _("Closed") }}</dt><dd>{{ ticket.closed_at|iso_time }}</dd></div>
+      {% if ticket.close_reason %}<div class="wide"><dt>{{ _("Reason") }}</dt><dd>{{ ticket.close_reason }}</dd></div>{% endif %}
+    </dl>
+    {% if ticket.answers %}
+    <dl class="ticket-facts ticket-form">
+      {% for question, answer in ticket.answers %}<div class="wide"><dt>{{ question }}</dt><dd class="pre">{{ answer }}</dd></div>{% endfor %}
+    </dl>
+    {% endif %}
+  </section>
+
+  <section class="panel transcript" aria-label="{{ _('Messages') }}">
+    {% for m in ticket.messages %}
+    <article class="msg{% if m.bot %} is-bot{% endif %}">
+      {% if m.avatar and m.avatar.startswith("https://cdn.discordapp.com/") %}<img class="msg-avatar" src="{{ m.avatar }}" alt="" width="40" height="40" loading="lazy">{% else %}<span class="msg-avatar"></span>{% endif %}
+      <div class="msg-body">
+        <p class="msg-head">
+          <b>{{ m.author }}</b>
+          {% if m.bot %}<span class="chip-demo">{{ _("Bot") }}</span>{% elif m.staff %}<span class="tag-red">{{ _("Staff") }}</span>{% endif %}
+          <time class="muted" datetime="{{ m.at }}">{{ m.at|iso_time }}</time>
+          {% if m.edited %}<span class="muted">({{ _("edited") }})</span>{% endif %}
+        </p>
+        {% if m.content %}<div class="pre">{{ m.content }}</div>{% endif %}
+        {% for e in m.embeds %}
+        <div class="msg-embed">
+          {% if e.title %}<b>{{ e.title }}</b>{% endif %}
+          {% if e.description %}<div class="pre">{{ e.description }}</div>{% endif %}
+          {% for name, value in e.fields %}<p><b>{{ name }}</b><br><span class="pre">{{ value }}</span></p>{% endfor %}
+        </div>
+        {% endfor %}
+        {% for f in m.files %}
+          {% if f.stored and f.type in inline_types %}
+          <a href="{{ url_for('transcript_file', token=ticket.token, name=f.stored) }}"><img class="msg-image" src="{{ url_for('transcript_file', token=ticket.token, name=f.stored) }}" alt="{{ f.name }}" loading="lazy"></a>
+          {% elif f.stored %}
+          <p><a href="{{ url_for('transcript_file', token=ticket.token, name=f.stored) }}">📎 {{ f.name }}</a> <span class="muted">({{ (f.size / 1024)|round|int }} KB)</span></p>
+          {% else %}
+          <p class="muted">📎 {{ f.name }} · {{ _("not saved (too big)") }}</p>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </article>
+    {% else %}
+    <p class="empty">{{ _("No messages.") }}</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}
