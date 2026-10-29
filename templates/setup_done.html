@@ -11,6 +11,8 @@
     {% else %}
     <p>{{ _("We prepare your configuration and link it to your license. You will find the key in your dashboard.") }}</p>
     {% endif %}
+    {% if ip_set %}<p>{{ icon('check') }} {{ _("Your key %(key)s now works from %(ip)s.", key=key, ip=ip_set) }}</p>
+    <p class="muted small">{{ _("Moving to another machine? Reset the servers of your key and fill in the setup again with the new IP.") }}</p>{% endif %}
     <p><a class="btn btn-primary" href="{{ url_for('dashboard') }}">{{ _("Open my licenses") }} {{ icon('arrow') }}</a></p>
   </section>
 </div>

@@ -35,7 +35,7 @@
 
 {% macro no_ip_warning(k, admin=False) %}
 {% if k.status != 'revoked' and not k.ips %}
-<p class="no-ip small" role="note">{{ icon('x') }}<span>{% if admin %}{{ _("No IP address set: this key works nowhere until you add the server's IP (license server 1.13+).") }}{% else %}{{ _("This key has no server IP yet, so it does not work. Send us the numeric IP of your server: fill in the setup link we send you, or open a ticket on Discord.") }}{% endif %}</span></p>
+<p class="no-ip small" role="note">{{ icon('x') }}<span>{% if admin %}{{ _("No IP address set: this key works nowhere until you add the server's IP (license server 1.13+).") }}{% else %}{{ _("This key has no server IP yet, so it does not work. Press Configure your server and give the numeric IP of your server.") }}{% endif %}</span></p>
 {% endif %}
 {% endmacro %}
 

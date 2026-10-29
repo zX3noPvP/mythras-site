@@ -1029,12 +1029,67 @@ def setup_page(token):
                  json.dumps(answers), answers.get("info.server_ip"), now_iso()),
             )
             db.commit()
-            applied = False
+            applied, ip_set = False, None
             if invite["license_key"]:
-                applied = apply_setup(db, cur.lastrowid, invite["license_key"], f"website: {user['username']} (setup)") is None
+                actor = f"website: {user['username']} (setup)"
+                applied = apply_setup(db, cur.lastrowid, invite["license_key"], actor) is None
+                ip_set = setup_lock_ip(invite, answers.get("info.server_ip"), actor)
             log.info("Setup answers %s from %s (%s)", cur.lastrowid, user["discord_id"], invite["plan"])
-            return render_template("setup_done.html", applied=applied, plan=invite["plan"])
+            return render_template("setup_done.html", applied=applied, plan=invite["plan"], ip_set=ip_set,
+                                   key=invite["license_key"])
     return render_template("setup.html", invite=invite, addons=addons, questions=questions, values=values, errors=errors)
+
+
+SELF_SETUP = "Customer (shop)"  # created_by of the setup links customers open themselves
+
+
+def setup_lock_ip(invite, ip, actor):
+    """Since license server 1.13 a key without IP works nowhere: the IP answered in the setup becomes the key's IP.
+    Links the customer opened from the shop always set it; links made by an admin only when the key has none yet
+    (an IP set by hand is never overwritten). Returns the IP set, or None."""
+    if not ip:
+        return None
+    try:
+        current = mythras_api.get_key(invite["license_key"]).get("ips") or []
+        if current and invite["created_by"] != SELF_SETUP:
+            return None
+        if current == [ip]:
+            return ip
+        mythras_api.key_action(invite["license_key"], "ips", actor, ips=[ip])
+        log.info("Setup: key %s now works from %s", invite["license_key"], ip)
+        return ip
+    except MythrasError as err:
+        log.warning("Setup: could not set the IP of %s: %s", invite["license_key"], err.message)
+        return None
+
+
+@app.post("/setup/key/<key>")
+@login_required
+def self_setup(key):
+    """Customer: open the setup questions for one of their own keys (after a purchase, or later from the dashboard)."""
+    user = current_user()
+    key = normalize_key(key)
+    try:
+        mine = next((k for k in mythras_api.user_keys(user["discord_id"]).get("keys", [])
+                     if k.get("key") == key and k.get("status") != "revoked"), None)
+    except MythrasError as err:
+        flash(err.message, "error")
+        return redirect(url_for("dashboard"))
+    if not mine:
+        abort(404)
+    plan = mine.get("plan") if mine.get("plan") in setup_forms.PLANS else "free"
+    addons = [a for a in mine.get("addons") or [] if a in ADDONS]
+    db = get_db()
+    # one open self-service link per key: older ones stop working
+    db.execute("UPDATE setup_invites SET revoked_at = ? WHERE license_key = ? AND discord_id = ? AND created_by = ?"
+               " AND used_at IS NULL AND revoked_at IS NULL", (now_iso(), key, user["discord_id"], SELF_SETUP))
+    try:
+        token = setup_forms.create_invite(db, plan, SELF_SETUP, license_key=key, discord_id=user["discord_id"],
+                                          note="Opened by the customer", hours=24, addons=addons)
+    except ValueError as err:
+        flash(t(str(err)), "error")
+        return redirect(url_for("dashboard"))
+    return redirect(url_for("setup_page", token=token))
 
 
 @app.get("/admin/invites")

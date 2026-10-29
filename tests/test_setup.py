@@ -91,7 +91,8 @@ check("info answers stay on the website", not any(k.startswith("info.") for k in
 check("cooldown choice sent as a number", cfg.get("alerts.cooldown-ms") == 1000)
 row = db().execute("SELECT * FROM setup_answers").fetchone()
 check("answers stored with normalised IP", row["server_ip"] == "2001:db8::1" and row["applied_at"])
-check("IP lock NOT set automatically", mock.keys[K1].get("ips", []) == [])
+check("key had no IP: the answered IP is set automatically", mock.keys[K1].get("ips", []) == ["2001:db8::1"])
+mock.keys[K1]["ips"] = []
 check("link works only once", cu.get(path).status_code == 410 and cu.post(path, data=answers).status_code == 410)
 
 # ---------- admin: answers, IP lock, key page ----------

@@ -920,3 +920,7 @@ input:user-invalid { border-color: var(--red); }
 .no-ip { display: flex; gap: var(--s2); align-items: flex-start; border: 1px solid var(--red); color: var(--text); padding: var(--s3) var(--s4); margin: 0 var(--s5) var(--s4); }
 .no-ip .ic { color: var(--red); flex: none; }
 .app > .no-ip, .shop-done > .no-ip { margin: 0 0 var(--s4); }
+
+.setup-cta { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: center; justify-content: space-between; padding: var(--s5); border-color: var(--red); }
+.setup-cta h2 { margin: 0 0 var(--s2); display: flex; gap: var(--s2); align-items: center; }
+.license-setup { padding: 0 var(--s5) var(--s3); }

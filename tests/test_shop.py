@@ -82,6 +82,25 @@ keys = my_keys(BUYER)
 check("paid: Free key with Anti-XRay, shown with copy and install steps", len(keys) == 1 and keys[0]["plan"] == "free"
       and keys[0]["addons"] == ["antixray"] and keys[0]["key"] in t and "mlicense " + keys[0]["key"] in t and "data-copy" in t
       and "Anti-XRay is now active on" in t)
+check("paid page: Configure your server button for that key", f'action="/setup/key/{keys[0]["key"]}"' in t)
+r = bu.post(f"/setup/key/{keys[0]['key']}", data={"csrf_token": "tok"})
+check("Configure -> a single-use setup link for this key and plan + add-ons", r.status_code == 302 and "/setup/" in r.headers["Location"])
+setup_path = r.headers["Location"].split("localhost", 1)[-1]
+st = text(bu.get(setup_path))
+check("setup questions of Free + Anti-XRay (no Pro questions)", "Turn on Anti-XRay by default?" in st and "Turn on Mythras Cloud AI?" not in st)
+import setup_forms, sqlite3 as _sq
+_db = _sq.connect(os.environ["DATABASE_PATH"]); _db.row_factory = _sq.Row
+form = {"csrf_token": "tok"}
+for q in setup_forms.questions_for(_db, "free", ["antixray"]):
+    form[q["config_key"]] = q["default_value"]
+form["info.server_ip"] = "203.0.113.7"
+r = bu.post(setup_path, data=form)
+check("answers: config sent and the key works from the answered IP", "now works from 203.0.113.7" in text(r)
+      and mock.keys[keys[0]["key"]]["ips"] == ["203.0.113.7"] and mock.keys[keys[0]["key"]]["config"].get("mitigations.anti-xray.enabled") is not None)
+r = bu.post(f"/setup/key/{keys[0]['key']}", data={"csrf_token": "tok"}); p2 = r.headers["Location"].split("localhost", 1)[-1]
+form["info.server_ip"] = "198.51.100.9"; bu.post(p2, data=form)
+check("self-service setup again: the new IP replaces the old one", mock.keys[keys[0]["key"]]["ips"] == ["198.51.100.9"])
+check("cannot open the setup of someone else's key", client(OTHER).post(f"/setup/key/{keys[0]['key']}", data={"csrf_token": "tok"}).status_code == 404)
 check("the site does not trust a made-up id", "Something went wrong" in text(bu.get("/shop/done?token=FAKE12345")))
 check("bad id format -> back to the shop", bu.get("/shop/done?token=../x").status_code == 302)
 free_key = keys[0]["key"]

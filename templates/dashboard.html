@@ -161,6 +161,12 @@
     {% endif %}
 
     {{ no_ip_warning(k) }}
+    {% if k.status != 'revoked' %}
+    <form method="post" action="{{ url_for('self_setup', key=k.key) }}" class="license-setup">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn {% if not k.ips %}btn-primary{% else %}btn-outline{% endif %} btn-sm" type="submit">{{ icon('settings') }}{{ _("Configure your server") }}</button>
+    </form>
+    {% endif %}
     {% if k.status != 'revoked' and SHOP.enabled %}
     <div class="license-buy">
       {% if k.plan == 'free' %}<a class="btn btn-primary btn-sm" href="{{ url_for('shop', item='pro', key=k.key, _anchor='pro') }}">{{ _("Upgrade to Pro") }}</a>{% endif %}

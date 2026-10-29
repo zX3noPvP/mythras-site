@@ -16,6 +16,18 @@
 
   {% from "admin/_parts.html" import no_ip_warning with context %}
   {{ no_ip_warning(key) }}
+  {% if key.status != 'revoked' %}
+  <section class="panel setup-cta">
+    <div>
+      <h2>{{ icon('settings') }}{{ _("Configure your server") }}</h2>
+      <p class="muted small">{{ _("A few questions (server IP, language, alerts, punishments...): the answers configure the plugin and set the IP your key works from.") }}</p>
+    </div>
+    <form method="post" action="{{ url_for('self_setup', key=key.key) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn btn-primary btn-lg" type="submit">{{ _("Configure your server") }} {{ icon('arrow') }}</button>
+    </form>
+  </section>
+  {% endif %}
   <section class="panel created-key">
     <div class="panel-head"><h2>{{ icon('key') }}{{ _("Your license key") }}</h2></div>
     <div class="key-row big-key">
