@@ -11,7 +11,7 @@
   </header>
   <ul class="cl-list">
     {% for c in v.changes %}{% set kind, text = cl_split(c) %}
-    <li>{% if kind %}<span class="cl-badge cl-{{ kind|lower }}">{{ _(kind) }}</span> {% endif %}<span lang="en">{{ cl_render(text) }}</span></li>
+    <li>{% if kind %}<span class="cl-badge cl-{{ kind|lower }}">{{ _(kind) }}</span> {% endif %}<span lang="{{ v.lang or 'en' }}">{{ cl_render(text) }}</span></li>
     {% endfor %}
   </ul>
 </section>

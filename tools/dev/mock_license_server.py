@@ -20,6 +20,9 @@ SHOP_ITEMS = [
 purchases = {}   # id -> purchase dict (+ "_paid" flag set by pay())
 # public changelog (license server 1.14): tests replace or empty it; CHANGELOG_UP = False simulates the server down
 CHANGELOG_UP = [True]
+CHANGELOG_TR = {"it": {"1.27.2": ["New: LiquidBounce Speed \"Intave14Fast\" viene beccato da Prediction.",
+                                  "Fixed: niente più falsi flag di Blink con `/ac discord test` aperto.",
+                                  "Improved: Anti-ESP usa meno CPU."]}}
 CHANGELOG = [
     {"version": "1.27.2", "date": "2026-10-28", "changes": [
         "New: LiquidBounce Speed \"Intave14Fast\" is caught by Prediction.",
@@ -329,7 +332,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.fail("down", 503)
             q = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
             limit = int(q["limit"]) if q.get("limit", "").isdigit() else None
-            return self.ok(versions=CHANGELOG[:limit] if limit else CHANGELOG)
+            lang = q.get("lang", "en")
+            out = [dict(v, lang=lang if lang in CHANGELOG_TR and v["version"] in CHANGELOG_TR[lang] else "en",
+                        changes=CHANGELOG_TR.get(lang, {}).get(v["version"], v["changes"])) for v in CHANGELOG]
+            return self.ok(versions=out[:limit] if limit else out)
         if self.headers.get("Authorization") != f"Bearer {TOKEN}":
             return self.fail("Bad token", 401)
         parsed = urllib.parse.urlparse(self.path)

@@ -1,8 +1,9 @@
 """Official Mythras changelog, published by the license server (GET /v1/changelog, public, license server 1.14+).
 
-The website never writes it: CHANGELOG.md is copied next to the license server by `mythras-update`.
-Answers are cached for 5 minutes; the last good answer is also saved to a file so the page survives a
-license server outage and a website restart. Lines are plain text: escaped, with `backticks` as <code>.
+The website never writes it: CHANGELOG.md (and CHANGELOG.<lang>.md for the translations) is copied next to the
+license server by `mythras-update`. The site asks for the visitor's language with ?lang=; versions not translated yet
+come back in English. Answers are cached for 5 minutes per language; the last good answer is also saved to a file so
+the page survives a license server outage and a website restart. Lines are plain text: escaped, `backticks` as <code>.
 """
 
 import json
@@ -22,7 +23,8 @@ TIMEOUT = 5
 KINDS = ("New", "Improved", "Fixed", "Licenses")
 _PREFIX = re.compile(r"^(New|Improved|Fixed|Licenses):\s*")
 _lock = threading.Lock()
-_mem = {"at": 0.0, "versions": None}
+LANGS = ("en", "it", "de", "fr", "es")
+_mem = {}  # lang -> {"at": time, "versions": [...]}
 
 MONTHS = {
     "en": ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
@@ -38,17 +40,17 @@ MONTHS = {
 }
 
 
-def _cache_file():
+def _cache_file(lang="en"):
     db = Path(os.getenv("DATABASE_PATH", "") or Path(__file__).resolve().parent / "data" / "mythras.db")
-    return db.parent / "changelog-cache.json"
+    return db.parent / ("changelog-cache.json" if lang == "en" else f"changelog-cache.{lang}.json")
 
 
-def _fetch():
+def _fetch(lang="en"):
     base = os.getenv("MYTHRAS_API_URL", "").rstrip("/")
     if not base:
         return None
-    req = urllib.request.Request(base + "/v1/changelog", headers={"Accept": "application/json",
-                                                                   "User-Agent": "MythrasWebsite/1.0"})
+    url = base + "/v1/changelog" + ("" if lang == "en" else f"?lang={lang}")
+    req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "MythrasWebsite/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             data = json.load(resp)
@@ -60,42 +62,46 @@ def _fetch():
     clean = []
     for v in versions:
         if isinstance(v, dict) and v.get("version"):
+            vlang = str(v.get("lang") or "en")  # older license servers send English without "lang"
             clean.append({"version": str(v["version"])[:32], "date": str(v.get("date") or "")[:10],
+                          "lang": vlang if vlang in LANGS else "en",
                           "changes": [str(c) for c in (v.get("changes") or []) if isinstance(c, str)][:200]})
     return clean
 
 
-def versions():
-    """Newest first, or None when nothing was ever received."""
+def versions(lang="en"):
+    """Newest first in this language (untranslated versions in English), or None when nothing was ever received."""
+    lang = lang if lang in LANGS else "en"
     with _lock:
-        if _mem["versions"] is not None and time.time() - _mem["at"] < TTL:
-            return _mem["versions"]
-        fresh = _fetch()
+        mem = _mem.setdefault(lang, {"at": 0.0, "versions": None})
+        if mem["versions"] is not None and time.time() - mem["at"] < TTL:
+            return mem["versions"]
+        fresh = _fetch(lang)
         if fresh is not None:
-            _mem.update(at=time.time(), versions=fresh)
+            mem.update(at=time.time(), versions=fresh)
             try:
-                tmp = _cache_file().with_suffix(".part")
+                tmp = _cache_file(lang).with_suffix(".part")
                 tmp.parent.mkdir(parents=True, exist_ok=True)
                 tmp.write_text(json.dumps(fresh), encoding="utf-8")
-                os.replace(tmp, _cache_file())
+                os.replace(tmp, _cache_file(lang))
             except OSError:
                 pass
             return fresh
-        if _mem["versions"] is not None:  # license server down: keep the last good answer, retry in a minute
-            _mem["at"] = time.time() - TTL + 60
-            return _mem["versions"]
+        if mem["versions"] is not None:  # license server down: keep the last good answer, retry in a minute
+            mem["at"] = time.time() - TTL + 60
+            return mem["versions"]
         try:
-            saved = json.loads(_cache_file().read_text(encoding="utf-8"))
+            saved = json.loads(_cache_file(lang).read_text(encoding="utf-8"))
             if isinstance(saved, list):
-                _mem.update(at=time.time() - TTL + 60, versions=saved)
+                mem.update(at=time.time() - TTL + 60, versions=saved)
                 return saved
         except (OSError, ValueError):
             pass
-        return None
+    return versions("en") if lang != "en" else None  # nothing in this language yet: English
 
 
-def latest():
-    items = versions()
+def latest(lang="en"):
+    items = versions(lang)
     return items[0] if items else None
 
 
@@ -141,4 +147,4 @@ def format_date(value, lang="en"):
 def reset_cache():
     """Tests only."""
     with _lock:
-        _mem.update(at=0.0, versions=None)
+        _mem.clear()

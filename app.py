@@ -617,7 +617,7 @@ def inject_globals():
 
 @app.get("/")
 def index():
-    return render_template("index.html", PLAN_MATRIX=docs.PLAN_MATRIX, news=releases.latest())
+    return render_template("index.html", PLAN_MATRIX=docs.PLAN_MATRIX, news=releases.latest(g.get("lang", "en")))
 
 
 def _local_next(default="/"):
@@ -664,7 +664,7 @@ def terms():
 @app.get("/changelog")
 def changelog():
     """Official changelog published by the license server (cached; see changelog.py)."""
-    return render_template("changelog.html", versions=releases.versions())
+    return render_template("changelog.html", versions=releases.versions(g.get("lang", "en")))
 
 
 @app.get("/changelog.xml")
@@ -883,7 +883,7 @@ def dashboard():
 
 def recent_release(days=7):
     """The latest version if it came out in the last `days` days (customer-area banner)."""
-    v = releases.latest()
+    v = releases.latest(g.get("lang", "en"))
     d = releases.parse_date(v["date"]) if v else None
     if d and (datetime.now(timezone.utc).date() - d).days <= days:
         return v
@@ -1306,7 +1306,7 @@ def shop():
     return render_template("shop.html", keys=keys, free_keys=[k for k in keys if k.get("plan") == "free"],
                            addon_slots={a: [k for k in keys if a not in (k.get("addons") or [])] for a in ADDON_IDS},
                            pick_key=normalize_key(request.args.get("key")) or "", pick_item=request.args.get("item", ""),
-                           DOCS=docs, news=releases.latest())
+                           DOCS=docs, news=releases.latest(g.get("lang", "en")))
 
 
 @app.post("/shop/buy")

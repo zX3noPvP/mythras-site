@@ -42,9 +42,13 @@ check("last 10 shown, older behind Show older versions", "Show older versions" i
 check("Mythras updates itself + Download button + RSS link", "Mythras updates itself" in t and 'rel="alternate" type="application/rss+xml"' in raw)
 check("no notes from admin uploads any more", "Improvements and fixes." not in t)
 it = client(lang="it"); ti = text(it.get("/changelog"))
-check("Italian page: date and badges translated, lines stay English", "28 ottobre 2026" in ti and "Novità" in ti and "Corretto" in ti
-      and "Anti-ESP uses less CPU." in ti and "Mostra le versioni precedenti" in ti)
-check("German date", "28. Oktober 2026" in text(client(lang="de").get("/changelog")))
+check("Italian page: date, badges and lines translated by the license server", "28 ottobre 2026" in ti and "Novità" in ti and "Corretto" in ti
+      and "Anti-ESP usa meno CPU." in ti and "Anti-ESP uses less CPU." not in ti and 'lang="it"' in it.get("/changelog").data.decode()
+      and "Mostra le versioni precedenti" in ti)
+check("versions not translated yet stay in English", "old fix 3." in ti)
+check("Italian home box translated", "Anti-ESP usa meno CPU." in text(it.get("/")))
+td = text(client(lang="de").get("/changelog"))
+check("German: date in German, lines in English (no German translation yet)", "28. Oktober 2026" in td and "Anti-ESP uses less CPU." in td)
 
 r = anon.get("/changelog.xml")
 check("RSS: one item per version with the anchor link", r.mimetype == "application/rss+xml" and r.text.count("<item>") == len(mock.CHANGELOG)
@@ -71,6 +75,7 @@ changelog._mem["at"] = 0  # expired in memory
 check("server down: last good answer from memory", "1.27.2" in text(anon.get("/changelog")))
 changelog.reset_cache()  # like a website restart
 check("server down after a restart: answer from the file", "1.27.2" in text(anon.get("/changelog")))
+check("server down, language never cached: English cache used", "1.27.2" in text(client(lang="fr").get("/changelog")))
 (Path(DBDIR) / "changelog-cache.json").unlink(); changelog.reset_cache()
 t = text(anon.get("/changelog"))
 check("nothing at all: friendly message", "The changelog is not available right now" in t)
