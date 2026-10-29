@@ -78,7 +78,7 @@ check("sha256 + size computed", latest["sha256"] == hashlib.sha256(jar1).hexdige
 
 # customer with an active key sees and gets the file
 t = html.unescape(client(OWNER).get("/dashboard").data.decode())
-check("license holder sees Download button with version + changelog", 'href="/download"' in t and "1.2.3" in t and "First public build" in t)
+check("license holder sees Download button with version", 'href="/download"' in t and "1.2.3" in t)
 r = client(OWNER).get("/download")
 check("license holder downloads the jar", r.status_code == 200 and r.data == jar1 and "Mythras-1.2.3.jar" in r.headers["Content-Disposition"])
 check("download not cacheable + sha header", r.headers.get("Cache-Control") == "no-store" and r.headers.get("X-Content-SHA256") == hashlib.sha256(jar1).hexdigest())

@@ -18,6 +18,17 @@ SHOP_ITEMS = [
     {"item": "antiesp", "name": "Anti-ESP add-on", "price": "5.99", "addon": True, "billing": "once", "available": True},
 ]
 purchases = {}   # id -> purchase dict (+ "_paid" flag set by pay())
+# public changelog (license server 1.14): tests replace or empty it; CHANGELOG_UP = False simulates the server down
+CHANGELOG_UP = [True]
+CHANGELOG = [
+    {"version": "1.27.2", "date": "2026-10-28", "changes": [
+        "New: LiquidBounce Speed \"Intave14Fast\" is caught by Prediction.",
+        "Fixed: no more Blink false flags with `/ac discord test` <b>open</b>.",
+        "Improved: Anti-ESP uses less CPU.",
+        "Licenses: a key needs at least one IP address.",
+        "Plain line without a prefix."]},
+] + [{"version": f"1.{20 + i // 3}.{i % 3}", "date": f"2026-09-{10 + i:02d}", "changes": [f"Fixed: old fix {i}."]}
+     for i in range(11, 0, -1)]
 
 
 def pay(pid):
@@ -58,6 +69,7 @@ def view(k, admin=True, detail=False):
         "key": k["key"], "plan": k["plan"], "status": status, "note": k["note"] if admin else "",
         "created": k["created"], "expires": k["expires"], "owner": k["owner"], "maxServers": max_s,
         "customMaxServers": k["custom"], "activeServers": sum(1 for s in k["servers"] if s["active"]),
+        "activeMachines": len({s.get("ip") for s in k["servers"] if s["active"]}),
         "nextReset": k["nextReset"],
         "ips": list(k.get("ips") or []),
         "addons": sorted(k.get("addons") or []),
@@ -312,6 +324,12 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def handle_any(self, method):
+        if self.path.split("?")[0] == "/v1/changelog" and method == "GET":  # public, no token
+            if not CHANGELOG_UP[0]:
+                return self.fail("down", 503)
+            q = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
+            limit = int(q["limit"]) if q.get("limit", "").isdigit() else None
+            return self.ok(versions=CHANGELOG[:limit] if limit else CHANGELOG)
         if self.headers.get("Authorization") != f"Bearer {TOKEN}":
             return self.fail("Bad token", 401)
         parsed = urllib.parse.urlparse(self.path)

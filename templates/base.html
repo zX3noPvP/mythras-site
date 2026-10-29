@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='fonts/fonts.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script nonce="{{ csp_nonce }}">document.documentElement.classList.add("js")</script>
+  {% block head %}{% endblock %}
 </head>
 <body class="page-{{ request.endpoint or 'error' }}"
       data-i18n-copied="{{ _('Key copied') }}"

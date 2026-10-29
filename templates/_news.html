@@ -1,0 +1,13 @@
+{% from "_icons.html" import icon %}
+{# "What's new in <version>": first 3 lines of the latest official changelog version (home and shop). #}
+{% if news %}
+<aside class="news-box">
+  <p class="kicker"><span class="kicker-dot"></span>{{ _("What's new in %(version)s", version=news.version) }}</p>
+  <ul class="news-list">
+    {% for c in news.changes[:3] %}{% set kind, text = cl_split(c) %}
+    <li>{% if kind %}<span class="cl-badge cl-{{ kind|lower }}">{{ _(kind) }}</span> {% endif %}{{ cl_render(text) }}</li>
+    {% endfor %}
+  </ul>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('changelog', _anchor='v' ~ news.version) }}">{{ _("Full changelog") }}</a>
+</aside>
+{% endif %}

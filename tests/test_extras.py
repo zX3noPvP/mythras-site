@@ -15,7 +15,6 @@ os.environ.update({"DATABASE_PATH": os.path.join(tempfile.mkdtemp(), "e.db"), "D
                    "LEGAL_CONTROLLER": "Mario Rossi, Roma, Italia", "LEGAL_VAT": "IT01234567890"})
 with zipfile.ZipFile(os.path.join(dl, "Mythras-1.16.0-x.jar"), "w") as z:
     z.writestr("plugin.yml", "name: Mythras\nversion: 1.16.0\nmain: a.B\n")
-Path(dl, "Mythras-1.16.0-x.json").write_text('{"changelog": "Cloud AI review menu.\\nFaster Anti-ESP."}', encoding="utf-8")
 import app as m, admin_2fa  # noqa: E402
 
 
@@ -42,8 +41,7 @@ def admin_client():
     return c
 
 t = html.unescape(anon.get("/changelog").data.decode())
-check("public changelog lists versions and notes", "1.16.0" in t and "Cloud AI review menu." in t and "Latest" in t)
-check("changelog has no download link", "/download" not in t.split("<main")[-1] if "<main" in t else "/download\"" not in t)
+check("public changelog from the license server", "1.27.2" in t and "Latest" in t)
 r = anon.get("/robots.txt")
 check("robots.txt blocks private areas + sitemap", r.mimetype == "text/plain" and "Disallow: /admin" in r.text and "Disallow: /panel" in r.text and "Sitemap: http" in r.text)
 r = anon.get("/sitemap.xml")

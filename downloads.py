@@ -112,7 +112,7 @@ def latest(product="plugin"):
     return items[0] if items else None
 
 
-def save_upload(storage, changelog="", product="plugin"):
+def save_upload(storage, product="plugin"):
     """Store an uploaded jar. Returns its info. Raises ValueError with a readable message."""
     original = (storage.filename or "").lower()
     if not original.endswith(".jar"):
@@ -133,8 +133,6 @@ def save_upload(storage, changelog="", product="plugin"):
                              else "No velocity-plugin.json or bungee.yml with a version was found inside the jar.")
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         final = target_dir / f"{_SAFE.sub('-', meta['name'] or PRODUCTS[product][2])}-{_SAFE.sub('-', meta['version'])}-{stamp}.jar"
-        if changelog.strip():
-            final.with_suffix(".json").write_text(json.dumps({"changelog": changelog.strip()[:2000]}), encoding="utf-8")
         os.replace(tmp, final)          # atomic: customers never get a half-written file
     finally:
         if tmp.exists():

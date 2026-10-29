@@ -531,6 +531,17 @@
     form.addEventListener("change", refresh);
     refresh();
   }
+  // customer area: "Mythras x.y is out" banner, hidden for good once closed (remembered per version)
+  var news = document.querySelector("[data-news-banner]");
+  if (news) {
+    var seen = null;
+    try { seen = localStorage.getItem("mythras-news-closed"); } catch (e) { seen = null; }
+    if (seen !== news.dataset.version) news.hidden = false;
+    news.querySelector("[data-news-close]").addEventListener("click", function () {
+      news.hidden = true;
+      try { localStorage.setItem("mythras-news-closed", news.dataset.version); } catch (e) { /* private mode */ }
+    });
+  }
   // shop: back from PayPal but not confirmed yet. Ask our own server again every 3 s for 60 s (it asks the
   // license server, which reads PayPal); reload when paid so the server renders the key
   var wait = document.querySelector("[data-shop-poll]");

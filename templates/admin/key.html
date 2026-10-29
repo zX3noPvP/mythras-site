@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_icons.html" import icon %}
-{% from "admin/_parts.html" import admin_nav, api_error_box, status_badge, servers_cell, events_table with context %}
+{% from "admin/_parts.html" import admin_nav, api_error_box, status_badge, servers_cell, events_table, no_ip_warning with context %}
 {% block title %}{{ key_id }} · Admin · Mythras AntiCheat{% endblock %}
 {% block content %}
 <div class="container app">
@@ -21,6 +21,7 @@
   </header>
   {{ admin_nav('keys') }}
   {{ api_error_box(api_error) }}
+  {% if k %}{{ no_ip_warning(k, admin=True) }}{% endif %}
 
   {% if k %}
   <section class="stat-row" aria-label="{{ _('Key summary') }}">
@@ -121,7 +122,7 @@
 
       <div class="action">
         <h3>{{ _("Allowed IP") }}</h3>
-        <p class="muted small">{{ _("The key works only from these numeric IP addresses, one per line. Empty = any IP.") }}</p>
+        <p class="muted small">{{ _("The key works only from these numeric IP addresses, one per line. Empty = the key works nowhere.") }}</p>
         <form method="post" action="{{ url_for('admin_key_action', key=key_id, action='ips') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <label class="sr-only" for="key-ips">{{ _("Allowed IP") }}</label>

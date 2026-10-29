@@ -108,7 +108,7 @@ check("IPs set by hand on the key page", mock.keys[K1]["ips"] == ["1.2.3.4", "5.
 r = ad.post(f"/admin/keys/{K1}/ips", data={"csrf_token": "tok", "ips": "myserver.com"}, follow_redirects=True)
 check("domain refused on the key page", "Enter numeric IP addresses only" in text(r) and mock.keys[K1]["ips"] == ["1.2.3.4", "5.6.7.8"])
 ad.post(f"/admin/keys/{K1}/ips", data={"csrf_token": "tok", "ips": ""})
-check("empty = any IP", mock.keys[K1]["ips"] == [])
+check("empty = no IP (the key works nowhere)", mock.keys[K1]["ips"] == [] and "No IP address set" in text(ad.get(f"/admin/keys/{K1}")))
 
 # a link without a key: answers wait, admin applies them later
 r = ad.post("/admin/invites", data={"csrf_token": "tok", "plan": "free", "key": "", "hours": "1"}, follow_redirects=True)

@@ -45,6 +45,7 @@ import mythras_api  # noqa: E402  (reads env after load_dotenv)
 import downloads  # noqa: E402
 import setup_forms  # noqa: E402
 import docs  # noqa: E402
+import changelog as releases  # noqa: E402
 from mythras_api import MythrasError  # noqa: E402
 
 log = logging.getLogger("mythras.site")
@@ -590,6 +591,9 @@ def inject_globals():
     return {
         "csrf_token": csrf_token(),
         "SHOP": shop_info(),
+        "cl_split": releases.split,
+        "cl_render": releases.render,
+        "cl_date": lambda value: releases.format_date(value, g.get("lang", "en")),
         "price_of": price_of,
         "csp_nonce": csp_nonce(),
         "current_user": current_user(),
@@ -613,7 +617,7 @@ def inject_globals():
 
 @app.get("/")
 def index():
-    return render_template("index.html", PLAN_MATRIX=docs.PLAN_MATRIX)
+    return render_template("index.html", PLAN_MATRIX=docs.PLAN_MATRIX, news=releases.latest())
 
 
 def _local_next(default="/"):
@@ -659,8 +663,32 @@ def terms():
 
 @app.get("/changelog")
 def changelog():
-    """Public list of published plugin versions with their release notes (no download links: those need a key)."""
-    return render_template("changelog.html", versions=downloads.versions())
+    """Official changelog published by the license server (cached; see changelog.py)."""
+    return render_template("changelog.html", versions=releases.versions())
+
+
+@app.get("/changelog.xml")
+def changelog_rss():
+    items = []
+    for v in (releases.versions() or [])[:30]:
+        d = releases.parse_date(v["date"])
+        pub = d.strftime("%a, %d %b %Y 00:00:00 +0000") if d else ""
+        link = f"https://mythras.eu/changelog#v{v['version']}"
+        body = "\n".join("- " + releases.plain(c) for c in v["changes"])
+        items.append(f"<item><title>{xml_escape('Mythras ' + v['version'])}</title><link>{xml_escape(link)}</link>"
+                     f"<guid isPermaLink=\"true\">{xml_escape(link)}</guid>"
+                     + (f"<pubDate>{pub}</pubDate>" if pub else "")
+                     + f"<description>{xml_escape(body)}</description></item>")
+    body = ('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Mythras AntiCheat changelog</title>'
+            '<link>https://mythras.eu/changelog</link><description>New versions of Mythras AntiCheat</description>'
+            + "".join(items) + "</channel></rss>")
+    resp = app.response_class(body, mimetype="application/rss+xml")
+    resp.headers["Cache-Control"] = "public, max-age=300"
+    return resp
+
+
+def xml_escape(text):
+    return (str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;"))
 
 
 @app.get("/robots.txt")
@@ -842,6 +870,7 @@ def dashboard():
         keys=keys,
         purchases=purchases,
         renews=renews,
+        news=recent_release(),
         download=latest_jar if active else None,
         proxy=downloads.latest("proxy") if any(k.get("plan") == "pro" for k in active) else None,
         download_exists=latest_jar is not None,
@@ -850,6 +879,15 @@ def dashboard():
         reset_hours=reset_hours,
         api_error=api_error,
     )
+
+
+def recent_release(days=7):
+    """The latest version if it came out in the last `days` days (customer-area banner)."""
+    v = releases.latest()
+    d = releases.parse_date(v["date"]) if v else None
+    if d and (datetime.now(timezone.utc).date() - d).days <= days:
+        return v
+    return None
 
 
 @app.post("/dashboard/claim")
@@ -1268,7 +1306,7 @@ def shop():
     return render_template("shop.html", keys=keys, free_keys=[k for k in keys if k.get("plan") == "free"],
                            addon_slots={a: [k for k in keys if a not in (k.get("addons") or [])] for a in ADDON_IDS},
                            pick_key=normalize_key(request.args.get("key")) or "", pick_item=request.args.get("item", ""),
-                           DOCS=docs)
+                           DOCS=docs, news=releases.latest())
 
 
 @app.post("/shop/buy")
@@ -2008,7 +2046,7 @@ def admin_downloads_upload():
         product = request.form.get("product", "plugin")
         if product not in downloads.PRODUCTS:
             raise ValueError("Choose what you are publishing.")
-        info = downloads.save_upload(storage, request.form.get("changelog", ""), product)
+        info = downloads.save_upload(storage, product)
     except ValueError as err:
         flash(t(str(err)), "error")
         return redirect(url_for("admin_downloads"))

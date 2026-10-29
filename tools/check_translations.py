@@ -57,6 +57,8 @@ def collect():
     import setup_forms
     found.update(docs.texts())
     found.update(setup_forms.texts())
+    import changelog
+    found.update(changelog.KINDS)  # badge names of the official changelog
     return found - {""}
 
 

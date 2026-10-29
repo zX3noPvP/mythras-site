@@ -14,6 +14,8 @@
   <div class="flash flash-success" role="status">{{ icon('check') }}<span>{{ _("%(addon)s is now active on %(key)s. It turns on by itself within a few minutes, no restart needed.", addon=ADDONS[purchase.item].name, key=key.key) }}</span></div>
   {% endif %}
 
+  {% from "admin/_parts.html" import no_ip_warning with context %}
+  {{ no_ip_warning(key) }}
   <section class="panel created-key">
     <div class="panel-head"><h2>{{ icon('key') }}{{ _("Your license key") }}</h2></div>
     <div class="key-row big-key">

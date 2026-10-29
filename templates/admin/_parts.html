@@ -28,7 +28,15 @@
 {% endmacro %}
 
 {% macro servers_cell(k) %}
-<span class="mono">{{ k.activeServers or 0 }}/{{ '∞' if k.maxServers == 0 else k.maxServers }}</span>
+{# license server 1.13+: the limit counts machines (distinct IPs); any number of servers per machine #}
+{% if k.activeMachines is defined %}<span class="mono">{{ k.activeMachines or 0 }}/{{ '∞' if k.maxServers == 0 else k.maxServers }}</span> <span class="small muted">{{ _("machines") }} · {{ _("1 server") if k.activeServers == 1 else _("%(n)s servers", n=k.activeServers or 0) }}</span>
+{% else %}<span class="mono">{{ k.activeServers or 0 }}/{{ '∞' if k.maxServers == 0 else k.maxServers }}</span>{% endif %}
+{% endmacro %}
+
+{% macro no_ip_warning(k, admin=False) %}
+{% if k.status != 'revoked' and not k.ips %}
+<p class="no-ip small" role="note">{{ icon('x') }}<span>{% if admin %}{{ _("No IP address set: this key works nowhere until you add the server's IP (license server 1.13+).") }}{% else %}{{ _("This key has no server IP yet, so it does not work. Send us the numeric IP of your server: fill in the setup link we send you, or open a ticket on Discord.") }}{% endif %}</span></p>
+{% endif %}
 {% endmacro %}
 
 {% macro events_table(events, show_key=True) %}

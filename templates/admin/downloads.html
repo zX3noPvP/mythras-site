@@ -28,9 +28,7 @@
       <label>{{ _("Plugin jar") }}
         <input type="file" name="jar" accept=".jar,application/java-archive" required>
       </label>
-      <label class="span-2">{{ _("Changelog (optional, shown to customers)") }}
-        <input name="changelog" maxlength="2000" placeholder="{{ _('e.g. Fixed false flags on boats, new KillAura check') }}">
-      </label>
+      <p class="span-2 muted small">{{ _("Release notes are not written here: the Changelog page shows the official CHANGELOG.md published by the license server.") }} <a href="{{ url_for('changelog') }}">{{ _("Changelog") }}</a></p>
       <button class="btn btn-primary" type="submit">{{ icon('arrow') }}{{ _("Publish") }}</button>
     </form>
     <p class="muted small pad">{{ _("Name and version are read from plugin.yml inside the jar. The newest build is served right away to every customer with an active license. The last 5 builds are kept.") }} {{ _("MythrasProxy: version from velocity-plugin.json or bungee.yml; customers with an active Pro license download it from their dashboard.") }}</p>
@@ -46,7 +44,7 @@
         <tbody>
           {% for v in rows %}
           <tr>
-            <td><b>{{ v.name }} {{ v.version }}</b>{% if loop.first %} <span class="badge badge-pro">{{ _("Live") }}</span>{% endif %}{% if v.changelog %}<br><span class="muted small">{{ v.changelog }}</span>{% endif %}</td>
+            <td><b>{{ v.name }} {{ v.version }}</b>{% if loop.first %} <span class="badge badge-pro">{{ _("Live") }}</span>{% endif %}</td>
             <td class="mono small">{{ v.file }}</td>
             <td class="small nowrap">{{ v.uploaded|date }}</td>
             <td class="small nowrap">{{ v.size_mb }} MB</td>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_icons.html" import icon %}
-{% from "admin/_parts.html" import api_error_box, status_badge, servers_cell with context %}
+{% from "admin/_parts.html" import api_error_box, status_badge, servers_cell, no_ip_warning with context %}
 {% block title %}{{ _("My licenses") }} · Mythras AntiCheat{% endblock %}
 {% block content %}
 <div class="container app">
@@ -24,6 +24,12 @@
   </header>
 
   {{ api_error_box(api_error) }}
+  {% if news %}
+  <div class="news-banner" data-news-banner data-version="{{ news.version }}" hidden>
+    {{ icon('activity') }}<span>{{ _("Mythras %(version)s is out: it installs itself at the next restart.", version=news.version) }} <a href="{{ url_for('changelog', _anchor='v' ~ news.version) }}">{{ _("See what's new") }}</a></span>
+    <button class="icon-btn" type="button" data-news-close aria-label="{{ _('Close') }}">{{ icon('x') }}</button>
+  </div>
+  {% endif %}
 
 
   <section class="stat-row" aria-label="{{ _('Your licenses') }}">
@@ -42,7 +48,7 @@
       </div>
       <a class="btn btn-primary btn-lg" href="{{ url_for('download_plugin') }}">{{ icon('arrow') }}{{ _("Download the plugin") }}</a>
     </div>
-    {% if download.changelog %}<p class="changelog">{{ download.changelog }}</p>{% endif %}
+    <p class="small"><a href="{{ url_for('changelog') }}">{{ _("What's new: changelog") }}</a></p>
     <p class="muted small sha">SHA-256 <span class="mono">{{ download.sha256 }}</span></p>
     {% if proxy %}
     <div class="download-row download-proxy">
@@ -53,7 +59,6 @@
       </div>
       <a class="btn btn-outline" href="{{ url_for('download_proxy') }}">{{ icon('arrow') }}{{ _("Download MythrasProxy") }}</a>
     </div>
-    {% if proxy.changelog %}<p class="changelog">{{ proxy.changelog }}</p>{% endif %}
     {% endif %}
   </section>
   {% elif download_exists %}
@@ -131,6 +136,7 @@
       <div><dt>{{ _("Plan") }}</dt><dd>{{ k.plan|plan_name }}</dd></div>
       <div><dt>{{ _("Add-ons") }}</dt><dd>{% for a in k.addons or [] if a in ADDONS %}<span class="addon-owned">{{ ADDONS[a].name }} <span class="badge badge-addon">{{ _("Lifetime") }}</span></span>{% else %}<span class="muted">—</span>{% endfor %}</dd></div>
       <div><dt>{{ _("Servers active") }}</dt><dd>{{ servers_cell(k) }}</dd></div>
+      <div><dt>{{ _("Allowed IP") }}</dt><dd class="mono small">{{ (k.ips or [])|join(', ') or '—' }}</dd></div>
       <div><dt>{{ _("Created") }}</dt><dd>{{ k.created|ms_date('—') }}</dd></div>
     </dl>
 
@@ -154,6 +160,7 @@
     <p class="muted pad small">{{ _("No server has started with this key yet.") }}</p>
     {% endif %}
 
+    {{ no_ip_warning(k) }}
     {% if k.status != 'revoked' and SHOP.enabled %}
     <div class="license-buy">
       {% if k.plan == 'free' %}<a class="btn btn-primary btn-sm" href="{{ url_for('shop', item='pro', key=k.key, _anchor='pro') }}">{{ _("Upgrade to Pro") }}</a>{% endif %}

@@ -2,24 +2,38 @@
 {% from "_icons.html" import icon %}
 {% block title %}{{ _("Changelog") }} · Mythras AntiCheat{% endblock %}
 {% block og_title %}{{ _("Changelog") }} · Mythras AntiCheat{% endblock %}
+{% block head %}<link rel="alternate" type="application/rss+xml" title="Mythras AntiCheat changelog" href="{{ url_for('changelog_rss') }}">{% endblock %}
+{% macro release(v, latest) -%}
+<section class="release{% if latest %} is-latest{% endif %}" id="v{{ v.version }}">
+  <header>
+    <h2>Mythras <span class="mono">{{ v.version }}</span>{% if latest %} <span class="badge badge-pro">{{ _("Latest") }}</span>{% endif %}</h2>
+    {% if v.date %}<time class="muted small" datetime="{{ v.date }}">{{ cl_date(v.date) }}</time>{% endif %}
+  </header>
+  <ul class="cl-list">
+    {% for c in v.changes %}{% set kind, text = cl_split(c) %}
+    <li>{% if kind %}<span class="cl-badge cl-{{ kind|lower }}">{{ _(kind) }}</span> {% endif %}<span lang="en">{{ cl_render(text) }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{%- endmacro %}
 {% block content %}
-<article class="container legal changelog">
+<article class="container legal cl-page">
   <p class="kicker"><span class="kicker-dot"></span>{{ _("Changelog") }}</p>
   <h1>{{ _("What's new in Mythras") }}</h1>
-  <p class="muted">{{ _("Versions of the Mythras plugin published on this website. Customers with a license download the latest one from their dashboard.") }}</p>
+  <p class="muted">{{ _("Mythras updates itself: servers with loader 1.26 or newer install each version at the next restart.") }}</p>
+  <p><a class="btn btn-primary btn-sm" href="{{ url_for('dashboard', _anchor='download') if current_user else url_for('login', next='/dashboard') }}">{{ icon('arrow') }}{{ _("Download") }}</a>
+     <a class="btn btn-ghost btn-sm" href="{{ url_for('changelog_rss') }}">RSS</a></p>
 
-  {% for v in versions %}
-  <section class="release{% if loop.first %} is-latest{% endif %}">
-    <header>
-      <h2>{{ v.name }} <span class="mono">{{ v.version }}</span>{% if loop.first %} <span class="badge badge-pro">{{ _("Latest") }}</span>{% endif %}</h2>
-      <time class="muted small" datetime="{{ v.uploaded }}">{{ v.uploaded|date }}</time>
-    </header>
-    {% if v.changelog %}<p class="release-notes">{{ v.changelog }}</p>{% else %}<p class="muted">{{ _("Improvements and fixes.") }}</p>{% endif %}
-  </section>
+  {% if versions %}
+    {% for v in versions[:10] %}{{ release(v, loop.first) }}{% endfor %}
+    {% if versions|length > 10 %}
+    <details class="cl-older">
+      <summary class="btn btn-outline btn-sm">{{ _("Show older versions") }}</summary>
+      {% for v in versions[10:] %}{{ release(v, False) }}{% endfor %}
+    </details>
+    {% endif %}
   {% else %}
-  <p class="muted">{{ _("No version published yet.") }}</p>
-  {% endfor %}
-
-  <p><a class="btn btn-outline btn-sm" href="{{ url_for('docs_page') }}#news">{{ icon('arrow') }}{{ _("Docs: what's new by version") }}</a></p>
+  <p class="muted">{{ _("The changelog is not available right now. Please try again later.") }}</p>
+  {% endif %}
 </article>
 {% endblock %}
