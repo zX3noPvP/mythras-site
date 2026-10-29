@@ -185,17 +185,6 @@ ad.post("/admin/keys/new", data={"csrf_token": "tok", "plan": "free", "addons": 
 fk = [k for k in mock.keys.values() if k["plan"] == "free" and k.get("addons") == ["antixray"] and k["note"] == ""]
 check("a Free key for an add-on never expires", len(fk) == 1 and fk[0]["expires"] == 0)
 
-# bot: plan and add-ons read from the key; customer links (their IP replaces the old one)
-mock.keys["MYTH-TEST-0003-ABCD-EFGH"]["addons"] = ["antixray"]
-r = bot.post("/api/bot/invites", json={"key": "MYTH-TEST-0003-ABCD-EFGH", "discord_id": ADMIN, "customer": True}, headers={"Authorization": "Bearer bot-secret-123"})
-j = r.get_json()
-check("bot: plan + add-ons from the key, customer link 24 h", r.status_code == 200 and j["plan"] == "pro" and j["addons"] == ["antixray"] and j["hours"] == 24)
-row = db().execute("SELECT created_by FROM setup_invites ORDER BY created_at DESC, rowid DESC").fetchone()
-check("bot customer link marked as opened by the customer", row["created_by"] == m.SELF_SETUP)
-r = bot.post("/api/bot/invites", json={"key": "MYTH-TEST-0003-ABCD-EFGH", "discord_id": CUST}, headers={"Authorization": "Bearer bot-secret-123"})
-check("bot: key of another Discord user refused", r.status_code == 400 and "another Discord user" in r.get_json()["error"])
-r = bot.post("/api/bot/invites", json={"customer": True, "plan": "pro"}, headers={"Authorization": "Bearer bot-secret-123"})
-check("bot: customer link needs key + discord_id", r.status_code == 400)
 check("robots blocks setup links", "Disallow: /setup/" in m.app.test_client().get("/robots.txt").text)
 
 # Italian

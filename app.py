@@ -1491,34 +1491,19 @@ def bot_create_invite():
         return jsonify(ok=False, error="discord_id must be a Discord user ID"), 400
     if body.get("key") and not key:
         return jsonify(ok=False, error="invalid key"), 400
-    plan, addons = str(body.get("plan") or ""), body.get("addons") or []
-    customer = body.get("customer") is True  # the customer asked for it (e.g. /license setup): their answer replaces the IP
-    if key and not plan:  # plan and add-ons of the key itself
-        try:
-            info = mythras_api.get_key(key)
-        except MythrasError as err:
-            return jsonify(ok=False, error=err.message), 400
-        if info.get("status") == "revoked":
-            return jsonify(ok=False, error="this key is revoked"), 400
-        if owner and info.get("owner") and info.get("owner") != owner:
-            return jsonify(ok=False, error="this key belongs to another Discord user"), 400
-        plan = info.get("plan") if info.get("plan") in setup_forms.PLANS else "free"
-        addons = [a for a in info.get("addons") or [] if a in ADDONS]
-        owner = owner or info.get("owner") or ""
-    if customer and not (key and owner):
-        return jsonify(ok=False, error="customer links need key and discord_id"), 400
+    addons = body.get("addons") or []
     try:
         if not isinstance(addons, list):
             raise ValueError
-        hours = int(body.get("hours") or (24 if customer else 168))
-        token_value = setup_forms.create_invite(get_db(), plan, SELF_SETUP if customer else "Discord bot",
+        hours = int(body.get("hours") or 168)
+        token_value = setup_forms.create_invite(get_db(), str(body.get("plan") or ""), "Discord bot",
                                                 license_key=key, discord_id=owner or None,
                                                 note=str(body.get("note") or ""), hours=hours,
                                                 addons=[str(a) for a in addons])
     except (ValueError, TypeError):
         return jsonify(ok=False, error="plan must be free or pro, addons a list of antixray/antiesp, hours a number"), 400
-    log.info("Setup invite (%s) created by the Discord bot%s", plan, " for the customer" if customer else "")
-    return jsonify(ok=True, url=setup_link(token_value), plan=plan, addons=sorted(set(addons)), hours=hours)
+    log.info("Setup invite (%s) created by the Discord bot", body.get("plan"))
+    return jsonify(ok=True, url=setup_link(token_value))
 
 
 # ---------- panel: servers, alerts, punishments and replays reported by Mythras ----------
