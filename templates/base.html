@@ -113,7 +113,7 @@
         <p>{{ _("Anticheat for Minecraft servers. Replay evidence and AI Learning from the Pro plan.") }}</p>
       </div>
       <div>
-        <h4>{{ _("Product") }}</h4>
+        <h2>{{ _("Product") }}</h2>
         <a href="{{ url_for('index') }}#features">{{ _("Features") }}</a>
         <a href="{{ url_for('index') }}#replay">{{ _("Replay") }}</a>
         <a href="{{ url_for('index') }}#ai">{{ _("AI Learning") }}</a>
@@ -122,7 +122,7 @@
         <a href="{{ url_for('changelog') }}">{{ _("Changelog") }}</a>
       </div>
       <div>
-        <h4>{{ _("Account") }}</h4>
+        <h2>{{ _("Account") }}</h2>
         {% if current_user %}
           <a href="{{ url_for('dashboard') }}">{{ _("Dashboard") }}</a>
         {% else %}
@@ -132,7 +132,7 @@
         <a href="{{ url_for('index') }}#faq">{{ _("FAQ") }}</a>
       </div>
       <div>
-        <h4>{{ _("Legal & support") }}</h4>
+        <h2>{{ _("Legal & support") }}</h2>
         <a href="{{ url_for('privacy') }}">{{ _("Privacy Policy") }}</a>
         <a href="{{ url_for('cookie_policy') }}">{{ _("Cookie Policy") }}</a>
         <a href="{{ url_for('terms') }}">{{ _("Terms of Sale") }}</a>
