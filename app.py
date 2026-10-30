@@ -506,20 +506,13 @@ RATE_RULES = {  # endpoint -> rule of ratelimit.RULES; everything else: "post" f
 RATE_FREE = {"static", "healthz"}  # assets (cached by Cloudflare) and the uptime monitor
 
 
-def client_ip():
-    """The visitor's IP: Cloudflare's header when the site is behind it (TRUST_PROXY=1), else the TCP peer."""
-    if os.getenv("TRUST_PROXY", "0") == "1" and request.headers.get("CF-Connecting-IP"):
-        return request.headers["CF-Connecting-IP"].strip()[:64]
-    return request.remote_addr or "?"
-
-
 @app.before_request
 def rate_limit():
     if request.endpoint in RATE_FREE or request.endpoint is None:
         return None
     rule = RATE_RULES.get(request.endpoint) or ("post" if request.method == "POST" else "page")
     uid = session.get("discord_id")
-    who = f"u:{uid}" if uid and rule not in ("login", "bot", "page") else f"ip:{client_ip()}"
+    who = f"u:{uid}" if uid and rule not in ("login", "bot", "page") else f"ip:{request.remote_addr}"
     wait = ratelimit.hit(get_db(), rule, who)
     if not wait:
         return None

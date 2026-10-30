@@ -1,7 +1,9 @@
-"""Request rate limits, shared by all gunicorn workers (counters in the site's SQLite database).
+"""Request rate limits.
 
 Fixed windows: each (rule, who) pair may make `limit` requests per `seconds`. "who" is the signed-in Discord ID when
-there is one, otherwise the client IP. Old windows are deleted now and then.
+there is one, otherwise the client IP. Sensitive rules are counted in the site's SQLite database, shared by all gunicorn
+workers. Plain page views only stop floods: they are counted in memory, per worker, because a database write on every
+page costs more than rendering the page.
 """
 
 import random
@@ -32,8 +34,22 @@ RULES = {
 }
 
 
+MEMORY_RULES = {"heads", "page"}
+_memory = {}  # (rule, who) -> [window, count]
+
+
 def init(db):
     db.executescript(SCHEMA)
+
+
+def _hit_memory(rule, who, limit, seconds, now, window):
+    if len(_memory) > 20000:
+        _memory.clear()
+    entry = _memory.get((rule, who))
+    if entry is None or entry[0] != window:
+        entry = _memory[(rule, who)] = [window, 0]
+    entry[1] += 1
+    return 0 if entry[1] <= limit else window + seconds - now
 
 
 def hit(db, rule, who):
@@ -41,6 +57,8 @@ def hit(db, rule, who):
     limit, seconds = RULES[rule]
     now = int(time.time())
     window = now - now % seconds
+    if rule in MEMORY_RULES:
+        return _hit_memory(rule, who, limit, seconds, now, window)
     db.execute("INSERT INTO rate_limits (rule, who, window, count) VALUES (?, ?, ?, 1)"
                " ON CONFLICT (rule, who, window) DO UPDATE SET count = count + 1", (rule, who, window))
     count = db.execute("SELECT count FROM rate_limits WHERE rule = ? AND who = ? AND window = ?",

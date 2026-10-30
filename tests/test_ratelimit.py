@@ -30,11 +30,14 @@ r = c.post("/dashboard/claim", data={"csrf_token": "tok", "key": "MYTH-AAAA-BBBB
 check("429 page says how long to wait + Retry-After", r.status_code == 429 and int(r.headers["Retry-After"]) > 0 and "Too many requests" in r.data.decode())
 check("another account is not blocked", client("100000000000000008").post("/dashboard/claim", data={"csrf_token": "tok", "key": "MYTH-X"}).status_code != 429)
 
-# login: per IP (Cloudflare header), not per account
+# login: per IP (the real IP passed by Caddy), not per account
 for i in range(20):
-    m.app.test_client().get("/login", headers={"CF-Connecting-IP": "203.0.113.5"})
-check("login: 21st request from the same IP -> 429", m.app.test_client().get("/login", headers={"CF-Connecting-IP": "203.0.113.5"}).status_code == 429)
-check("login from another IP still works", m.app.test_client().get("/login", headers={"CF-Connecting-IP": "203.0.113.6"}).status_code != 429)
+    m.app.test_client().get("/login", headers={"X-Forwarded-For": "203.0.113.5"})
+check("login: 21st request from the same IP -> 429", m.app.test_client().get("/login", headers={"X-Forwarded-For": "203.0.113.5"}).status_code == 429)
+check("login from another IP still works", m.app.test_client().get("/login", headers={"X-Forwarded-For": "203.0.113.6"}).status_code != 429)
+
+spoof = [m.app.test_client().get("/login", headers={"X-Forwarded-For": "203.0.113.5", "CF-Connecting-IP": f"10.0.0.{i}"}).status_code for i in range(3)]
+check("a forged CF-Connecting-IP does not get around the limit", spoof == [429, 429, 429])
 
 # JSON endpoints answer JSON
 c2 = client("100000000000000007")
@@ -46,17 +49,20 @@ check("polling over the limit -> JSON 429", r.status_code == 429 and r.get_json(
 # static files and the health check are never limited
 old = ratelimit.RULES["page"]; ratelimit.RULES["page"] = (2, 86400)
 for i in range(5):
-    m.app.test_client().get("/static/style.css", headers={"CF-Connecting-IP": "198.51.100.1"})
-check("static files not limited", m.app.test_client().get("/static/style.css", headers={"CF-Connecting-IP": "198.51.100.1"}).status_code == 200)
+    m.app.test_client().get("/static/style.css", headers={"X-Forwarded-For": "198.51.100.1"})
+check("static files not limited", m.app.test_client().get("/static/style.css", headers={"X-Forwarded-For": "198.51.100.1"}).status_code == 200)
 for i in range(2):
-    m.app.test_client().get("/terms", headers={"CF-Connecting-IP": "198.51.100.2"})
-check("pages limited per IP (flood)", m.app.test_client().get("/terms", headers={"CF-Connecting-IP": "198.51.100.2"}).status_code == 429)
+    m.app.test_client().get("/terms", headers={"X-Forwarded-For": "198.51.100.2"})
+check("pages limited per IP (flood)", m.app.test_client().get("/terms", headers={"X-Forwarded-For": "198.51.100.2"}).status_code == 429)
+con = sqlite3.connect(os.environ["DATABASE_PATH"])
+check("plain pages are not written to the database", con.execute("SELECT COUNT(*) FROM rate_limits WHERE rule = 'page'").fetchone()[0] == 0)
+con.close()
 ratelimit.RULES["page"] = old
 
 # HSTS only in production
 check("no HSTS in development", "Strict-Transport-Security" not in m.app.test_client().get("/terms").headers)
 m.PRODUCTION = True
-h = m.app.test_client().get("/terms", headers={"CF-Connecting-IP": "198.51.100.3"}).headers.get("Strict-Transport-Security", "")
+h = m.app.test_client().get("/terms", headers={"X-Forwarded-For": "198.51.100.3"}).headers.get("Strict-Transport-Security", "")
 m.PRODUCTION = False
 check("HSTS in production: 1 year, subdomains", h == "max-age=31536000; includeSubDomains")
 print(f"\n{len(fails)} failed" if fails else "\nALL PASSED")
