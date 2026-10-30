@@ -1331,6 +1331,7 @@
   "To use your plan, type in the <b>server console</b>:": "Um deinen Plan zu nutzen, gib in der <b>Serverkonsole</b> ein:",
   "To watch a replay in game, copy its command and run it on your server.": "Um ein Replay im Spiel anzusehen, kopiere seinen Befehl und führe ihn auf deinem Server aus.",
   "Too many clicks per second and click patterns that are too regular, including randomized clickers.": "Zu viele Klicks pro Sekunde und zu gleichmäßige Klickmuster, auch bei \"zufälligen\" Clickern.",
+  "Too many requests. Please wait %(n)s seconds and try again.": "Zu viele Anfragen. Warte %(n)s Sekunden und versuche es erneut.",
   "Too many wrong codes. 2FA is locked for 15 minutes.": "Zu viele falsche Codes. Die 2FA ist 15 Minuten gesperrt.",
   "Too many wrong codes. Try again in %(n)s minutes.": "Zu viele falsche Codes. Versuche es in %(n)s Minuten erneut.",
   "Top checks": "Häufigste Checks",

@@ -46,6 +46,7 @@ import downloads  # noqa: E402
 import setup_forms  # noqa: E402
 import docs  # noqa: E402
 import changelog as releases  # noqa: E402
+import ratelimit  # noqa: E402
 from mythras_api import MythrasError  # noqa: E402
 
 log = logging.getLogger("mythras.site")
@@ -233,6 +234,7 @@ def init_db():
     db.executescript(SCHEMA)
     db.executescript(admin_2fa.SCHEMA)
     setup_forms.init(db)
+    ratelimit.init(db)
     have = {r[1] for r in db.execute("PRAGMA table_info(orders)")}
     for col in ("subscription_id", "sub_status", "renews_at", "ends_at"):
         if col not in have:  # databases created before monthly plans
@@ -478,6 +480,8 @@ def security_headers(resp):
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
     resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    if PRODUCTION:  # browsers use HTTPS only for a year, also for license.mythras.eu
+        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     if request.path.startswith(("/admin", "/dashboard", "/download", "/panel")):
         resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -492,6 +496,42 @@ def t(text, **values):
 @app.before_request
 def set_language():
     g.lang = i18n.pick(request)
+
+
+RATE_RULES = {  # endpoint -> rule of ratelimit.RULES; everything else: "post" for forms, "page" otherwise
+    "login": "login", "discord_callback": "login", "claim_key": "claim", "shop_buy": "buy",
+    "shop_done_check": "shop_check", "setup_page": "setup", "self_setup": "setup", "bot_create_invite": "bot",
+    "download_plugin": "download", "download_proxy": "download", "player_head": "heads",
+}
+RATE_FREE = {"static", "healthz"}  # assets (cached by Cloudflare) and the uptime monitor
+
+
+def client_ip():
+    """The visitor's IP: Cloudflare's header when the site is behind it (TRUST_PROXY=1), else the TCP peer."""
+    if os.getenv("TRUST_PROXY", "0") == "1" and request.headers.get("CF-Connecting-IP"):
+        return request.headers["CF-Connecting-IP"].strip()[:64]
+    return request.remote_addr or "?"
+
+
+@app.before_request
+def rate_limit():
+    if request.endpoint in RATE_FREE or request.endpoint is None:
+        return None
+    rule = RATE_RULES.get(request.endpoint) or ("post" if request.method == "POST" else "page")
+    uid = session.get("discord_id")
+    who = f"u:{uid}" if uid and rule not in ("login", "bot", "page") else f"ip:{client_ip()}"
+    wait = ratelimit.hit(get_db(), rule, who)
+    if not wait:
+        return None
+    log.warning("Rate limit %s for %s on %s", rule, who, request.path)
+    if request.path.startswith(("/api/", "/shop/done/check", "/panel/feed", "/admin/panel/feed")):
+        resp = jsonify(ok=False, error="too many requests")
+    else:
+        resp = app.make_response((render_template(
+            "error.html", code=429, message=t("Too many requests. Please wait %(n)s seconds and try again.", n=wait)), 429))
+    resp.status_code = 429
+    resp.headers["Retry-After"] = str(wait)
+    return resp
 
 
 @app.url_defaults
