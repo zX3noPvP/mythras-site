@@ -181,7 +181,7 @@ button { font: inherit; }
 .replay-events { list-style: none; margin: 0; padding: var(--s2); display: flex; flex-direction: column; gap: 2px; }
 .replay-events button {
   display: flex; gap: var(--s3); width: 100%; min-height: 44px; align-items: center; text-align: left;
-  padding: var(--s2) var(--s3); background: transparent; border: 1px solid transparent; color: #6f6f6f;
+  padding: var(--s2) var(--s3); background: transparent; border: 1px solid transparent; color: var(--muted);
   cursor: pointer; font-size: .88rem; transition: color var(--t), border-color var(--t), background var(--t);
 }
 .replay-events button:hover { border-color: var(--line-2); color: var(--text); }
